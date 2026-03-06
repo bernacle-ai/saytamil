@@ -2,7 +2,7 @@
 
 A modern, clean Tamil language AI writing assistant built with Next.js 16, React 19, and Tailwind CSS.
 
-## Features
+## Features--
 
 ✨ **Modern UI** - Built with Tailwind CSS for a clean, responsive design
 🔐 **Authentication** - Simple login/signup with localStorage persistence
