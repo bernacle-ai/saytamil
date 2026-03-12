@@ -13,49 +13,152 @@ export interface AnalysisResult {
   score: number;
 }
 
+// API Key rotation management
+let currentKeyIndex = 0;
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 3000; // 3 seconds between requests
+const keyFailureCount = new Map<string, number>();
+const keyLastFailureTime = new Map<string, number>();
+const KEY_COOLDOWN = 60000; // 1 minute cooldown after failures
+
+function getApiKeys(): string[] {
+  const keys: string[] = [];
+  
+  const key1 = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  const key2 = process.env.NEXT_PUBLIC_GEMINI_API_KEY_2;
+  const key3 = process.env.NEXT_PUBLIC_GEMINI_API_KEY_3;
+  
+  if (key1) keys.push(key1);
+  if (key2) keys.push(key2);
+  if (key3) keys.push(key3);
+  
+  return keys;
+}
+
+function getNextApiKey(): string {
+  const keys = getApiKeys();
+  
+  if (keys.length === 0) {
+    throw new Error("No API keys configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file");
+  }
+  
+  // Try to find a healthy key
+  const now = Date.now();
+  for (let i = 0; i < keys.length; i++) {
+    const keyIndex = (currentKeyIndex + i) % keys.length;
+    const key = keys[keyIndex];
+    
+    const failures = keyFailureCount.get(key) || 0;
+    const lastFailure = keyLastFailureTime.get(key) || 0;
+    
+    // Skip if key is in cooldown
+    if (failures >= 3 && (now - lastFailure) < KEY_COOLDOWN) {
+      continue;
+    }
+    
+    // Reset failure count if cooldown period passed
+    if (failures >= 3 && (now - lastFailure) >= KEY_COOLDOWN) {
+      keyFailureCount.set(key, 0);
+    }
+    
+    currentKeyIndex = (keyIndex + 1) % keys.length;
+    return key;
+  }
+  
+  // All keys are in cooldown, use the one with oldest failure
+  let oldestKey = keys[0];
+  let oldestTime = keyLastFailureTime.get(oldestKey) || 0;
+  
+  for (const key of keys) {
+    const time = keyLastFailureTime.get(key) || 0;
+    if (time < oldestTime) {
+      oldestTime = time;
+      oldestKey = key;
+    }
+  }
+  
+  return oldestKey;
+}
+
+function markKeyFailure(key: string, is429: boolean = false) {
+  const current = keyFailureCount.get(key) || 0;
+  keyFailureCount.set(key, current + (is429 ? 3 : 1)); // 429 errors count more
+  keyLastFailureTime.set(key, Date.now());
+}
+
 export async function analyzeText(text: string): Promise<AnalysisResult> {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      "Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file"
-    );
+  // Rate limiting check
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+    const waitTime = Math.ceil((MIN_REQUEST_INTERVAL - timeSinceLastRequest) / 1000);
+    throw new Error(`Please wait ${waitTime} seconds before analyzing again (rate limit)`);
   }
 
-  // Check if we should use demo mode
-  if (apiKey === 'DEMO_MODE' || apiKey.startsWith('DEMO')) {
-    return getDemoAnalysis(text);
+  lastRequestTime = now;
+  
+  const keys = getApiKeys();
+  let lastError: Error | null = null;
+  
+  // Try each available key
+  for (let attempt = 0; attempt < keys.length; attempt++) {
+    const apiKey = getNextApiKey();
+    
+    try {
+      const result = await makeApiRequest(text, apiKey);
+      return result;
+    } catch (error) {
+      lastError = error as Error;
+      
+      // If it's a 429 error, mark the key and try next one
+      if (error instanceof Error && error.message.includes('429')) {
+        markKeyFailure(apiKey, true);
+        console.log(`Key ${attempt + 1} hit rate limit, trying next key...`);
+        continue;
+      }
+      
+      // For other errors, throw immediately
+      throw error;
+    }
   }
+  
+  // All keys failed
+  throw new Error(
+    lastError?.message || 'All API keys exhausted. Please wait a few minutes and try again.'
+  );
+}
 
-  const prompt = `You are an expert Tamil language assistant. Analyze the following Tamil text and provide detailed suggestions.
+async function makeApiRequest(text: string, apiKey: string): Promise<AnalysisResult> {
+  const model = process.env.NEXT_PUBLIC_GEMINI_MODEL || 'gemini-3.1-flash-lite-preview';
 
-Text to analyze:
-"${text}"
+  const prompt = `You are an expert Tamil language assistant. Analyze the following Tamil text for grammar, spelling, style, and clarity issues.
 
-Return ONLY valid JSON in this format:
+Text: "${text}"
+
+Provide a detailed analysis in JSON format. Return ONLY valid JSON without any markdown formatting:
 
 {
   "suggestions": [
     {
       "type": "grammar|spelling|style|clarity",
-      "original": "original text",
-      "suggestion": "corrected text",
-      "reason": "explanation in English"
+      "original": "exact text from input that has the issue",
+      "suggestion": "corrected version",
+      "reason": "தெளிவான விளக்கம் தமிழில் - clear explanation in Tamil"
     }
   ],
-  "summary": "Overall assessment of the text",
+  "summary": "Overall quality assessment of the text in 1-2 sentences",
   "score": 85
 }
 
-Focus on:
-1. Grammar errors (தமிழ் இலக்கணம்)
-2. Spelling mistakes (எழுத்துப்பிழைகள்)
-3. Style improvements (நடை மேம்பாடு)
-4. Clarity enhancements (தெளிவு)
+IMPORTANT Rules:
+- Write ALL reasons in TAMIL language only
+- Only suggest changes if there are actual issues
+- Be specific about what needs improvement
+- Score from 0-100 based on text quality
+- If text is perfect, return empty suggestions array and positive summary`;
 
-Provide at least 3–5 suggestions if there are issues. If the text is perfect, say so in the summary.`;
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {
@@ -71,104 +174,55 @@ Provide at least 3–5 suggestions if there are issues. If the text is perfect, 
         ],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 512,
         },
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Gemini API Error:', errorData);
+      console.error('Gemini API Error:', response.status, errorData);
       
-      // Fallback to demo mode if API fails
-      console.warn('⚠️ Gemini API failed. Using DEMO MODE.');
-      console.warn('To fix: Go to https://aistudio.google.com/app/apikey and create a NEW API key');
-      return getDemoAnalysis(text);
+      if (response.status === 429) {
+        throw new Error('429');
+      }
+      
+      throw new Error(`API request failed: ${response.status}`);
     }
 
     const data = await response.json();
 
-    const responseText =
-      data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!responseText) {
-      return getDemoAnalysis(text);
+      throw new Error('Empty response from API');
     }
 
-    // Clean markdown if Gemini returns ```json blocks
+    // Clean markdown formatting
     const cleanText = responseText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
       .trim();
 
-    try {
-      const parsed = JSON.parse(cleanText);
+    const parsed = JSON.parse(cleanText);
 
-      const suggestionsWithIds =
-        parsed.suggestions?.map((s: any, index: number) => ({
-          ...s,
-          id: `suggestion-${Date.now()}-${index}`,
-        })) || [];
+    const suggestionsWithIds =
+      parsed.suggestions?.map((s: any, index: number) => ({
+        ...s,
+        id: `suggestion-${Date.now()}-${index}`,
+      })) || [];
 
-      return {
-        suggestions: suggestionsWithIds,
-        summary: parsed.summary || "Analysis complete",
-        score: parsed.score || 80,
-      };
-    } catch {
-      // fallback if JSON parsing fails
-      return {
-        suggestions: [],
-        summary: responseText,
-        score: 75,
-      };
-    }
+    return {
+      suggestions: suggestionsWithIds,
+      summary: parsed.summary || "Analysis complete",
+      score: Math.min(100, Math.max(0, parsed.score || 80)),
+    };
   } catch (error) {
     console.error("Gemini API Error:", error);
-    // Fallback to demo mode on any error
-    return getDemoAnalysis(text);
+    throw new Error(
+      error instanceof Error 
+        ? `Analysis failed: ${error.message}` 
+        : 'Failed to analyze text. Please check your API key and try again.'
+    );
   }
-}
-
-// Demo mode for testing UI without working API
-function getDemoAnalysis(text: string): AnalysisResult {
-  const words = text.split(/\s+/).filter(w => w.trim());
-  const suggestions: Suggestion[] = [];
-
-  // Generate demo suggestions based on the text
-  if (words.length > 0) {
-    suggestions.push({
-      id: `suggestion-${Date.now()}-1`,
-      type: 'grammar',
-      original: words[0] || 'text',
-      suggestion: words[0] + ' (corrected)',
-      reason: 'Demo: This is a sample grammar correction to show how suggestions work.',
-    });
-  }
-
-  if (words.length > 1) {
-    suggestions.push({
-      id: `suggestion-${Date.now()}-2`,
-      type: 'spelling',
-      original: words[1] || 'text',
-      suggestion: words[1] + ' (fixed)',
-      reason: 'Demo: This is a sample spelling correction.',
-    });
-  }
-
-  if (words.length > 2) {
-    suggestions.push({
-      id: `suggestion-${Date.now()}-3`,
-      type: 'style',
-      original: words.slice(0, 3).join(' '),
-      suggestion: words.slice(0, 3).join(' ') + ' (improved)',
-      reason: 'Demo: This is a sample style improvement suggestion.',
-    });
-  }
-
-  return {
-    suggestions,
-    summary: '⚠️ DEMO MODE: Your API key is not working. These are sample suggestions to demonstrate the UI. To get real AI suggestions:\n\n1. Go to https://aistudio.google.com/app/apikey\n2. DELETE your old API key\n3. CREATE a new API key\n4. Update .env.local\n5. Restart dev server',
-    score: 75,
-  };
 }

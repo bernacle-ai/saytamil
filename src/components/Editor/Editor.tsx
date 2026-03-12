@@ -5,6 +5,8 @@ import { useChat } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
 import { analyzeText, Suggestion, AnalysisResult } from '@/lib/gemini';
 import { SuggestionCard } from './SuggestionCard';
+import { TransliterationDropdown } from './TransliterationDropdown';
+import { transliterateLastWord, shouldShowSuggestions, TransliterationOption } from '@/lib/transliteration';
 
 export function Editor({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   const [content, setContent] = useState('');
@@ -16,6 +18,13 @@ export function Editor({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   const [chatTitle, setChatTitle] = useState('Untitled Draft');
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Transliteration states
+  const [transliterationOptions, setTransliterationOptions] = useState<TransliterationOption[]>([]);
+  const [showTransliteration, setShowTransliteration] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [isTransliterating, setIsTransliterating] = useState(false);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { currentChatId, addMessage, updateMessage, currentMessages, currentChat, renameChat } = useChat();
   const { showToast } = useToast();
@@ -30,6 +39,47 @@ export function Editor({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
       setChatTitle(currentChat.title);
     }
   }, [currentChat]);
+
+  // Handle transliteration on text change
+  useEffect(() => {
+    const handleTransliteration = async () => {
+      if (!shouldShowSuggestions(content)) {
+        setShowTransliteration(false);
+        return;
+      }
+
+      setIsTransliterating(true);
+      const result = await transliterateLastWord(content);
+      
+      if (result.suggestions.length > 0) {
+        setTransliterationOptions(result.suggestions);
+        
+        // Calculate dropdown position based on cursor
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const { selectionStart } = textarea;
+          const textBeforeCursor = content.substring(0, selectionStart);
+          const lines = textBeforeCursor.split('\n');
+          const currentLine = lines.length;
+          const currentColumn = lines[lines.length - 1].length;
+          
+          // Approximate position
+          const top = textarea.offsetTop + currentLine * fontSize * 1.6 + 60;
+          const left = textarea.offsetLeft + Math.min(currentColumn * fontSize * 0.6, 400);
+          
+          setDropdownPosition({ top, left });
+          setShowTransliteration(true);
+        }
+      } else {
+        setShowTransliteration(false);
+      }
+      
+      setIsTransliterating(false);
+    };
+
+    const debounceTimer = setTimeout(handleTransliteration, 800); // Increased delay to reduce API calls
+    return () => clearTimeout(debounceTimer);
+  }, [content, fontSize]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,6 +103,29 @@ export function Editor({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   const handleSave = () => {
     localStorage.setItem(`draft_${currentChatId}`, content);
     showToast('Draft saved', 'success');
+  };
+
+  // Helper function to get highlighted content with red underlines
+  const getHighlightedContent = () => {
+    if (!analysisResult || analysisResult.suggestions.length === 0) {
+      return content;
+    }
+
+    let highlightedText = content;
+    const replacements: Array<{ original: string; highlighted: string }> = [];
+
+    analysisResult.suggestions.forEach((suggestion) => {
+      const original = suggestion.original;
+      const highlighted = `<span style="text-decoration: underline; text-decoration-color: red; text-decoration-thickness: 2px;">${original}</span>`;
+      replacements.push({ original, highlighted });
+    });
+
+    // Apply replacements
+    replacements.forEach(({ original, highlighted }) => {
+      highlightedText = highlightedText.replace(original, highlighted);
+    });
+
+    return highlightedText;
   };
 
   const handleExport = (format: 'txt' | 'pdf') => {
@@ -146,24 +219,29 @@ export function Editor({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
       setAnalysisResult(result);
 
       // Add AI response message
-      const aiMessage = addMessage({
-        text: `Analysis Complete!\n\nScore: ${result.score}/100\n\n${result.summary}\n\nFound ${result.suggestions.length} suggestions.`,
+      addMessage({
+        text: `Analysis Complete!\n\nScore: ${result.score}/100\n\n${result.summary}\n\n${result.suggestions.length > 0 ? `Found ${result.suggestions.length} suggestions.` : 'No issues found!'}`,
         sender: 'assistant',
         isLoading: false,
       });
 
-      showToast(`Found ${result.suggestions.length} suggestions!`, 'success');
+      if (result.suggestions.length > 0) {
+        showToast(`Found ${result.suggestions.length} suggestions!`, 'success');
+      } else {
+        showToast('Text looks great!', 'success');
+      }
     } catch (error) {
       console.error('Analysis error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Failed to analyze text';
       
       addMessage({
-        text: `Error: ${errorMsg}`,
+        text: `❌ Error: ${errorMsg}\n\nPlease check:\n1. Your API key is valid\n2. You have internet connection\n3. The API key is in .env.local file`,
         sender: 'assistant',
         isLoading: false,
       });
 
       showToast(errorMsg, 'error');
+      setShowSuggestions(false);
     } finally {
       setIsAnalyzing(false);
     }
@@ -210,8 +288,33 @@ export function Editor({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
     showToast('All suggestions applied!', 'success');
   };
 
+  const handleTransliterationSelect = (tamilText: string) => {
+    const words = content.split(/\s+/);
+    if (words.length > 0) {
+      words[words.length - 1] = tamilText;
+      setContent(words.join(' ') + ' ');
+    }
+    setShowTransliteration(false);
+    
+    // Focus back on textarea
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+  };
+
   return (
     <div className="flex h-full gap-4 p-6">
+      {/* Transliteration Dropdown */}
+      {showTransliteration && (
+        <TransliterationDropdown
+          options={transliterationOptions}
+          onSelect={handleTransliterationSelect}
+          onClose={() => setShowTransliteration(false)}
+          position={dropdownPosition}
+          theme={theme}
+        />
+      )}
+      
       <div className={`flex-1 flex flex-col ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden shadow-2xl`}>
         <div className={`px-6 py-4 border-b ${theme === 'dark' ? 'border-slate-800 bg-gradient-to-r from-slate-900 to-slate-800' : 'border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100'} flex items-center justify-between`}>
           <div className="flex-1">
@@ -307,7 +410,48 @@ export function Editor({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
           </div>
         </div>
 
-        <textarea ref={textareaRef} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Start typing in Tamil or English... (Ctrl+Enter to analyze)" style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }} className={`flex-1 px-6 py-4 bg-transparent ${theme === 'dark' ? 'text-white placeholder-slate-500' : 'text-gray-900 placeholder-gray-400'} focus:outline-none resize-none`} />
+        <div className="relative flex-1">
+          <textarea 
+            ref={textareaRef} 
+            value={content} 
+            onChange={(e) => {
+              setContent(e.target.value);
+              // Clear analysis when user edits
+              if (analysisResult) {
+                setAnalysisResult(null);
+                setShowSuggestions(false);
+              }
+            }} 
+            placeholder="Start typing in Tamil or English... (Ctrl+Enter to analyze)" 
+            style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }} 
+            className={`w-full h-full px-6 py-4 bg-transparent ${theme === 'dark' ? 'text-white placeholder-slate-500' : 'text-gray-900 placeholder-gray-400'} focus:outline-none resize-none`} 
+          />
+          
+          {/* Highlight overlay for suggestions */}
+          {analysisResult && analysisResult.suggestions.length > 0 && (
+            <div 
+              className="absolute top-0 left-0 w-full h-full px-6 py-4 pointer-events-none overflow-hidden whitespace-pre-wrap"
+              style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }}
+            >
+              {content.split('').map((char, index) => {
+                const isHighlighted = analysisResult.suggestions.some(s => {
+                  const startIndex = content.indexOf(s.original);
+                  const endIndex = startIndex + s.original.length;
+                  return index >= startIndex && index < endIndex;
+                });
+                
+                return (
+                  <span 
+                    key={index}
+                    className={isHighlighted ? 'border-b-2 border-red-500' : 'text-transparent'}
+                  >
+                    {char}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <div className={`px-6 py-4 border-t ${theme === 'dark' ? 'border-slate-800 bg-slate-800/50' : 'border-gray-200 bg-gray-50'} flex items-center justify-between`}>
           <div className="flex items-center gap-4">
