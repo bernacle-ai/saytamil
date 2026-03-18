@@ -3,8 +3,8 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'Tamil Chat - AI Writing Assistant',
-  description: 'AI-powered Tamil writing assistant with Gemini API',
+  title: 'SayTamil - AI Writing Assistant',
+  description: 'AI-powered Tamil writing assistant with grammar checking and transliteration',
 };
 
 export default function RootLayout({

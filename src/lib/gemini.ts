@@ -132,31 +132,31 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
 async function makeApiRequest(text: string, apiKey: string): Promise<AnalysisResult> {
   const model = process.env.NEXT_PUBLIC_GEMINI_MODEL || 'gemini-3.1-flash-lite-preview';
 
-  const prompt = `You are an expert Tamil language assistant. Analyze the following Tamil text for grammar, spelling, style, and clarity issues.
+  const prompt = `You are a strict Tamil grammar checker. Your ONLY job is to find real grammar and spelling errors in Tamil text.
 
-Text: "${text}"
+Text to check: "${text}"
 
-Provide a detailed analysis in JSON format. Return ONLY valid JSON without any markdown formatting:
+Rules:
+- ONLY flag actual grammar mistakes or misspelled Tamil words
+- Do NOT suggest style changes, rewording, or "improvements"
+- Do NOT flag correct sentences just because they are simple
+- If the text is grammatically correct, return empty suggestions
+- Keep suggestions minimal — only what is clearly wrong
+- Write ALL reasons in Tamil only
 
+Return ONLY this JSON, no markdown:
 {
   "suggestions": [
     {
-      "type": "grammar|spelling|style|clarity",
-      "original": "exact text from input that has the issue",
-      "suggestion": "corrected version",
-      "reason": "தெளிவான விளக்கம் தமிழில் - clear explanation in Tamil"
+      "type": "grammar|spelling",
+      "original": "exact wrong text from input",
+      "suggestion": "corrected text",
+      "reason": "தமிழில் குறுகிய விளக்கம்"
     }
   ],
-  "summary": "Overall quality assessment of the text in 1-2 sentences",
-  "score": 85
-}
-
-IMPORTANT Rules:
-- Write ALL reasons in TAMIL language only
-- Only suggest changes if there are actual issues
-- Be specific about what needs improvement
-- Score from 0-100 based on text quality
-- If text is perfect, return empty suggestions array and positive summary`;
+  "summary": "ஒரு வரி மதிப்பீடு தமிழில்",
+  "score": 90
+}`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
