@@ -5,6 +5,9 @@ import { Providers } from '@/components/Providers';
 export const metadata: Metadata = {
   title: 'SayTamil - AI Writing Assistant',
   description: 'AI-powered Tamil writing assistant with grammar checking and transliteration',
+  icons: {
+    icon: '/saytamil-logo.png',
+  },
 };
 
 export default function RootLayout({
