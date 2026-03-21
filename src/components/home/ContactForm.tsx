@@ -19,8 +19,17 @@ export function ContactForm() {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) return;
     setStatus('sending');
-    await new Promise(r => setTimeout(r, 1200));
-    setStatus('sent');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setStatus('sent');
+    } catch {
+      setStatus('error');
+    }
   };
 
   if (status === 'sent') {

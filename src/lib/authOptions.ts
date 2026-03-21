@@ -40,7 +40,8 @@ export const authOptions: NextAuthOptions = {
             [user.email, account.providerAccountId, user.name, user.image]
           );
         } catch (error) {
-          console.error('DB error:', error);
+          const msg = error instanceof Error ? error.message : 'unknown error';
+          console.error('Google sign-in: failed to upsert user record.', process.env.NODE_ENV === 'development' ? msg : '');
           return false;
         }
       }

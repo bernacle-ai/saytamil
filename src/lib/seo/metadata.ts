@@ -31,8 +31,6 @@ export const defaultMetadata: Metadata = {
     languages: {
       'en-IN': '/',
       'ta-IN': '/ta',
-      'en-SG': '/sg',
-      'en-MY': '/my',
     },
   },
   openGraph: {

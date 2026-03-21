@@ -9,7 +9,16 @@ const DEMO_LIMIT = 3;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour window per session
 
 export async function POST(req: NextRequest) {
-  const { text, sessionId } = await req.json();
+  let text: string | undefined;
+  let sessionId: string | undefined;
+
+  try {
+    const body = await req.json();
+    text = body.text;
+    sessionId = body.sessionId;
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+  }
 
   if (!text?.trim()) {
     return NextResponse.json({ error: 'No text provided' }, { status: 400 });
@@ -22,6 +31,10 @@ export async function POST(req: NextRequest) {
   const now = Date.now();
   const entry = sessionStore.get(sessionId);
 
+  // Determine current count without incrementing yet
+  let currentCount: number;
+  let resetAt: number;
+
   if (entry && now < entry.resetAt) {
     if (entry.count >= DEMO_LIMIT) {
       return NextResponse.json(
@@ -33,18 +46,22 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-    entry.count += 1;
-    sessionStore.set(sessionId, entry);
+    currentCount = entry.count;
+    resetAt = entry.resetAt;
   } else {
-    // New window
-    sessionStore.set(sessionId, { count: 1, resetAt: now + WINDOW_MS });
+    // New window — start at 0 (will be incremented to 1 on success)
+    currentCount = 0;
+    resetAt = now + WINDOW_MS;
   }
-
-  const current = sessionStore.get(sessionId)!;
-  const remaining = Math.max(0, DEMO_LIMIT - current.count);
 
   try {
     const result = await analyzeText(text);
+
+    // Only increment after a successful analysis
+    const newCount = currentCount + 1;
+    sessionStore.set(sessionId, { count: newCount, resetAt });
+    const remaining = Math.max(0, DEMO_LIMIT - newCount);
+
     return NextResponse.json({ ...result, remaining, limit: DEMO_LIMIT });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Analysis failed';

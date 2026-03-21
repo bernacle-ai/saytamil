@@ -12,11 +12,6 @@ export const softwareApplicationSchema = {
   description:
     'AI-powered Tamil grammar and spell checker. Supports sandhi rules, verb forms, Tanglish input, and more.',
   url: 'https://saytamil.com',
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    ratingCount: '312',
-  },
 }
 
 export const faqSchema = {

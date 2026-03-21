@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
-import { analyzeText, Suggestion, AnalysisResult } from '@/lib/gemini';
+import type { Suggestion, AnalysisResult } from '@/lib/gemini';
 import { SuggestionCard } from './SuggestionCard';
 import { TransliterationDropdown } from './TransliterationDropdown';
 import { transliterateLastWord, shouldShowSuggestions, TransliterationOption } from '@/lib/transliteration';
@@ -144,7 +144,10 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
   };
 
   // Handle transliteration on text change
+  const translitSeqRef = useRef(0);
   useEffect(() => {
+    const seq = ++translitSeqRef.current;
+
     const handleTransliteration = async () => {
       if (!tamilMode || !shouldShowSuggestions(content)) {
         setShowTransliteration(false);
@@ -153,7 +156,10 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
 
       setIsTransliterating(true);
       const result = await transliterateLastWord(content);
-      
+
+      // Discard if a newer request has started
+      if (seq !== translitSeqRef.current) return;
+
       if (result.suggestions.length > 0) {
         setTransliterationOptions(result.suggestions);
         
@@ -171,8 +177,11 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
     };
 
     const debounceTimer = setTimeout(handleTransliteration, 800);
-    return () => clearTimeout(debounceTimer);
-  }, [content, fontSize, tamilMode]);
+    return () => {
+      clearTimeout(debounceTimer);
+      translitSeqRef.current++; // invalidate any in-flight call
+    };
+  }, [content, tamilMode]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -219,29 +228,6 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
     navigator.clipboard.writeText(clean).then(() => {
       showToast('Copied clean text', 'success');
     });
-  };
-
-  // Helper function to get highlighted content with red underlines
-  const getHighlightedContent = () => {
-    if (!analysisResult || analysisResult.suggestions.length === 0) {
-      return content;
-    }
-
-    let highlightedText = content;
-    const replacements: Array<{ original: string; highlighted: string }> = [];
-
-    analysisResult.suggestions.forEach((suggestion) => {
-      const original = suggestion.original;
-      const highlighted = `<span style="text-decoration: underline; text-decoration-color: red; text-decoration-thickness: 2px;">${original}</span>`;
-      replacements.push({ original, highlighted });
-    });
-
-    // Apply replacements
-    replacements.forEach(({ original, highlighted }) => {
-      highlightedText = highlightedText.replace(original, highlighted);
-    });
-
-    return highlightedText;
   };
 
   const handleExport = (format: 'txt' | 'pdf') => {
@@ -324,7 +310,16 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
     addMessage({ text: content, sender: 'user' });
 
     try {
-      const result = await analyzeText(content);
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: content }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Analysis failed (${res.status})`);
+      }
+      const result: AnalysisResult = await res.json();
       setAnalysisResult(result);
 
       // Increment usage and refresh counter
