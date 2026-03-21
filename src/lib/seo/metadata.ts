@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 
 export const defaultMetadata: Metadata = {
   title: {
-    default: 'SayTamil — Free AI Tamil Grammar Checker | தமிழ் இலக்கணம் சரிபார்க்கவும்',
-    template: '%s | SayTamil Tamil Grammar Checker',
+    default: 'SayTamil — Free AI Tamil Grammar Checker',
+    template: '%s | SayTamil',
   },
   description:
     'Free AI Tamil grammar checker. Fix grammar, spelling, sandhi rules & verb forms instantly. Trusted by students, writers & businesses. No signup needed.',
@@ -47,7 +47,7 @@ export const defaultMetadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'SayTamil — AI-Powered தமிழ் இலக்கண சரிபார்ப்பு',
+    title: 'SayTamil — Free AI Tamil Grammar Checker',
     description:
       'Fix Tamil grammar errors in seconds. Sandhi rules, verb forms, spelling — all explained clearly.',
     url: 'https://saytamil.com',
