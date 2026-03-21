@@ -9,6 +9,8 @@ import {
   faqSchema,
   organizationSchema,
 } from '@/lib/seo/structuredData';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { MicrosoftClarity } from '@/components/analytics/MicrosoftClarity';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -54,6 +56,8 @@ export default function RootLayout({
       <body className="font-sans">
         <Providers>{children}</Providers>
         <Analytics />
+        <GoogleAnalytics />
+        <MicrosoftClarity />
       </body>
     </html>
   );

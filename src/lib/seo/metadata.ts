@@ -76,6 +76,6 @@ export const defaultMetadata: Metadata = {
     googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
   verification: {
-    google: 'YOUR_GOOGLE_SEARCH_CONSOLE_TOKEN',
+    google: 'RNBMLOIbF6kFAJe7FK9d6pRFrMHsiLoaQXmI33FJaDQ',
   },
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
+import { trackSignupClick } from '@/lib/analytics/events';
 
 export function NavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,7 +36,8 @@ export function NavBar() {
             <>
               <Link href="/tool" className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">Login</Link>
               <Link href="/tool" className="text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg,#00d4b4,#7c6af7)', boxShadow: '0 4px 16px rgba(0,212,180,0.30)' }}>
+                style={{ background: 'linear-gradient(135deg,#00d4b4,#7c6af7)', boxShadow: '0 4px 16px rgba(0,212,180,0.30)' }}
+                onClick={() => trackSignupClick('nav')}>
                 Sign Up Free
               </Link>
             </>

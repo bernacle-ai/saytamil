@@ -14,6 +14,7 @@ HOMEPAGE_SPEC.md
 /coverage
 node_modules
 .next
+ANALYTICS_KIRO_SPEC.md
 # next.js
 /.next/
 /out/
@@ -33,6 +34,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
