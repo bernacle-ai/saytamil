@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Sidebar } from './Sidebar';
 import { Editor } from '../Editor/Editor';
 import { useChat } from '@/contexts/ChatContext';
@@ -8,11 +9,15 @@ import { useChat } from '@/contexts/ChatContext';
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const { currentChatId, currentMessages } = useChat();
+  const [showSettings, setShowSettings] = useState(false);
+  const [fontSize, setFontSize] = useState(16);
+  const { currentChatId } = useChat();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('tamil_chat_theme') as 'dark' | 'light' | null;
     if (savedTheme) setTheme(savedTheme);
+    const savedFont = localStorage.getItem('tamil_chat_font');
+    if (savedFont) setFontSize(Number(savedFont));
   }, []);
 
   const toggleTheme = () => {
@@ -21,18 +26,16 @@ export function MainLayout() {
     localStorage.setItem('tamil_chat_theme', newTheme);
   };
 
-  // Determine which view to show
-  const showEmpty = !currentChatId;
-  const showEditor = currentChatId;
+  const handleFontChange = (size: number) => {
+    setFontSize(size);
+    localStorage.setItem('tamil_chat_font', String(size));
+  };
 
   return (
     <div className={`flex h-screen ${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'}`}>
-      {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} theme={theme} />
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Enhanced Header */}
         <header className={`${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-200'} border-b px-6 py-4 flex items-center justify-between shadow-sm`}>
           <div className="flex items-center gap-4">
             <button
@@ -44,13 +47,12 @@ export function MainLayout() {
               </svg>
             </button>
             <div className="flex items-center gap-3">
-              <h1 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Tamil Chat</h1>
-              <span className="px-2 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold rounded-full">AI</span>
+              <Link href="/" className={`text-xl font-bold transition-colors ${theme === 'dark' ? 'text-white hover:text-teal-400' : 'text-gray-900 hover:text-teal-600'}`}>SayTamil</Link>
+              <span className="px-2 py-1 bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-xs font-semibold rounded-full">AI</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Theme Toggle */}
-            <button 
+            <button
               onClick={toggleTheme}
               className={`p-2 ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-gray-100'} rounded-lg transition-colors`}
               title="Toggle theme"
@@ -65,7 +67,11 @@ export function MainLayout() {
                 </svg>
               )}
             </button>
-            <button className={`p-2 ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-gray-100'} rounded-lg transition-colors`}>
+            <button
+              onClick={() => setShowSettings(true)}
+              className={`p-2 ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-gray-100'} rounded-lg transition-colors`}
+              title="Settings"
+            >
               <svg className={`w-5 h-5 ${theme === 'dark' ? 'text-slate-300' : 'text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -74,12 +80,71 @@ export function MainLayout() {
           </div>
         </header>
 
-        {/* Content Area */}
         <main className="flex-1 overflow-hidden">
-          {showEmpty && <EmptyView theme={theme} />}
-          {showEditor && <Editor theme={theme} />}
+          {currentChatId
+            ? <Editor theme={theme} globalFontSize={fontSize} />
+            : <EmptyView theme={theme} />
+          }
         </main>
       </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowSettings(false)}>
+          <div
+            className={`w-80 ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'} border rounded-xl shadow-2xl p-6`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Settings</h2>
+              <button onClick={() => setShowSettings(false)} className={`p-1 ${theme === 'dark' ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-500'} rounded`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              {/* Theme */}
+              <div>
+                <p className={`text-sm font-medium mb-2 ${theme === 'dark' ? 'text-slate-300' : 'text-gray-700'}`}>Theme</p>
+                <div className="flex gap-2">
+                  {(['dark', 'light'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => { setTheme(t); localStorage.setItem('tamil_chat_theme', t); }}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                        theme === t
+                          ? 'bg-teal-500 text-white'
+                          : theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t === 'dark' ? '🌙 Dark' : '☀️ Light'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font Size */}
+              <div>
+                <p className={`text-sm font-medium mb-2 ${theme === 'dark' ? 'text-slate-300' : 'text-gray-700'}`}>Editor Font Size: {fontSize}px</p>
+                <input
+                  type="range"
+                  min={12}
+                  max={24}
+                  step={2}
+                  value={fontSize}
+                  onChange={e => handleFontChange(Number(e.target.value))}
+                  className="w-full accent-cyan-500"
+                />
+                <div className="flex justify-between text-xs mt-1 text-slate-500">
+                  <span>12px</span><span>24px</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -90,96 +155,19 @@ function EmptyView({ theme }: { theme: 'dark' | 'light' }) {
       <div className="text-center max-w-md">
         <div className="text-6xl mb-6 animate-bounce">👋</div>
         <h2 className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}>
-          Welcome to Tamil Chat
+          Welcome to SayTamil
         </h2>
         <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'} mb-8`}>
-          Select a chat from the sidebar or create a new one to get started with grammar checking, spelling corrections, and writing suggestions.
+          Select a chat from the sidebar or create a new one to get started.
         </p>
         <div className="grid grid-cols-2 gap-4 mt-8">
-          <div className={`p-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border rounded-lg`}>
-            <div className="text-2xl mb-2">✍️</div>
-            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Grammar Check</p>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'} mt-1`}>Real-time corrections</p>
-          </div>
-          <div className={`p-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border rounded-lg`}>
-            <div className="text-2xl mb-2">🎯</div>
-            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Smart Suggestions</p>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'} mt-1`}>AI-powered tips</p>
-          </div>
-          <div className={`p-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border rounded-lg`}>
-            <div className="text-2xl mb-2">🌐</div>
-            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Translation</p>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'} mt-1`}>Tamil ↔ English</p>
-          </div>
-          <div className={`p-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border rounded-lg`}>
-            <div className="text-2xl mb-2">📊</div>
-            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Analytics</p>
-            <p className={`text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'} mt-1`}>Writing insights</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WelcomeView({ onNewChat }: { onNewChat: () => string }) {
-  return (
-    <div className="flex flex-col h-full items-center justify-center p-6">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-6">👋</div>
-        <h2 className="text-3xl font-bold text-white mb-4">Welcome to Tamil Chat</h2>
-        <p className="text-slate-400 mb-8">
-          Your AI-powered Tamil writing assistant. Create a new chat to get started with grammar checking, spelling corrections, and writing suggestions.
-        </p>
-        <button
-          onClick={onNewChat}
-          className="flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-lg font-semibold transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Create New Chat
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ChatView() {
-  const { currentMessages } = useChat();
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {currentMessages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                msg.sender === 'user'
-                  ? 'bg-cyan-600 text-white'
-                  : 'bg-slate-800 text-slate-100'
-              }`}
-            >
-              {msg.text}
+          {[['✍️','Grammar Check','Real-time corrections'],['🎯','Smart Suggestions','AI-powered tips'],['🌐','Transliteration','Type English, get Tamil'],['📊','Usage Tracking','Daily limit insights']].map(([icon, title, desc]) => (
+            <div key={title} className={`p-4 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border rounded-lg`}>
+              <div className="text-2xl mb-2">{icon}</div>
+              <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</p>
+              <p className={`text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'} mt-1`}>{desc}</p>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Input Area */}
-      <div className="border-t border-slate-800 p-4">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Type your message..."
-            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-          />
-          <button className="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium transition-colors">
-            Send
-          </button>
+          ))}
         </div>
       </div>
     </div>

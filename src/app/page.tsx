@@ -1,24 +1,27 @@
-'use client';
+import { NavBar } from '@/components/home/NavBar';
+import { HeroSection } from '@/components/home/HeroSection';
+import { FeaturesSection } from '@/components/home/FeaturesSection';
+import { DemoSection } from '@/components/home/DemoSection';
+import { UseCasesSection } from '@/components/home/UseCasesSection';
+import { TestimonialsSection } from '@/components/home/TestimonialsSection';
+import { PricingSection } from '@/components/home/PricingSection';
+import { FAQSection } from '@/components/home/FAQSection';
+import { CTABanner } from '@/components/home/CTABanner';
+import { Footer } from '@/components/home/Footer';
 
-import { useState, useEffect } from 'react';
-import { AuthPage } from '@/components/Auth/AuthPage';
-import { MainLayout } from '@/components/Layout/MainLayout';
-
-export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const user = localStorage.getItem('tamil_chat_user');
-    setIsAuthenticated(!!user);
-    setIsLoading(false);
-  }, []);
-
-  if (isLoading) return null;
-
-  if (!isAuthenticated) {
-    return <AuthPage onAuthSuccess={() => setIsAuthenticated(true)} />;
-  }
-
-  return <MainLayout />;
+export default function HomePage() {
+  return (
+    <div className="bg-white text-gray-900">
+      <NavBar />
+      <HeroSection />
+      <FeaturesSection />
+      <DemoSection />
+      <UseCasesSection />
+      <TestimonialsSection />
+      <PricingSection />
+      <FAQSection />
+      <CTABanner />
+      <Footer />
+    </div>
+  );
 }

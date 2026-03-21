@@ -16,6 +16,16 @@ body {
   @apply bg-slate-950 text-white font-sans;
 }
 
+/* Tamil font class — uses next/font variable */
+.font-tamil {
+  font-family: var(--font-tamil), 'Noto Sans Tamil', sans-serif;
+}
+
+/* Support Tamil text in all text areas and inputs */
+textarea, input {
+  font-family: var(--font-tamil), 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

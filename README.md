@@ -130,6 +130,12 @@ export function useGemini() {
 - [ ] User profile
 - [ ] Settings panel
 
+
+##NEXT AUTH API KEY CREATION
+```node
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))
+```
+
 ## License
 
 MIT
