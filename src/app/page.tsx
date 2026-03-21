@@ -1,23 +1,27 @@
-'use client';
+import { NavBar } from '@/components/home/NavBar';
+import { HeroSection } from '@/components/home/HeroSection';
+import { FeaturesSection } from '@/components/home/FeaturesSection';
+import { DemoSection } from '@/components/home/DemoSection';
+import { UseCasesSection } from '@/components/home/UseCasesSection';
+import { TestimonialsSection } from '@/components/home/TestimonialsSection';
+import { PricingSection } from '@/components/home/PricingSection';
+import { FAQSection } from '@/components/home/FAQSection';
+import { CTABanner } from '@/components/home/CTABanner';
+import { Footer } from '@/components/home/Footer';
 
-import { useSession } from 'next-auth/react';
-import { AuthPage } from '@/components/Auth/AuthPage';
-import { MainLayout } from '@/components/Layout/MainLayout';
-
-export default function Home() {
-  const { data: session, status } = useSession();
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <AuthPage onAuthSuccess={() => {}} />;
-  }
-
-  return <MainLayout />;
+export default function HomePage() {
+  return (
+    <div className="bg-white text-gray-900">
+      <NavBar />
+      <HeroSection />
+      <FeaturesSection />
+      <DemoSection />
+      <UseCasesSection />
+      <TestimonialsSection />
+      <PricingSection />
+      <FAQSection />
+      <CTABanner />
+      <Footer />
+    </div>
+  );
 }

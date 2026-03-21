@@ -1,0 +1,70 @@
+import { Metadata } from 'next'
+
+export const defaultMetadata: Metadata = {
+  title: {
+    default: 'SayTamil — Free AI Tamil Grammar Checker | தமிழ் இலக்கணம் சரிபார்க்கவும்',
+    template: '%s | SayTamil Tamil Grammar Checker',
+  },
+  description:
+    'Free AI Tamil grammar checker. Fix grammar, spelling, sandhi rules & verb forms instantly. Trusted by students, writers & businesses. No signup needed.',
+  keywords: [
+    'tamil grammar checker',
+    'tamil spell checker',
+    'tamil grammar check online',
+    'free tamil grammar tool',
+    'tamil writing assistant',
+    'tanglish to tamil',
+    'tamil sandhi checker',
+    'தமிழ் இலக்கண சரிபார்ப்பு',
+    'தமிழ் எழுத்துப் பிழை திருத்தி',
+    'தமிழ் இலக்கண கருவி',
+    'online tamil grammar correction',
+    'tamil grammar checker for students',
+    'tamil grammar checker for content creators',
+    'ai tamil proofreader',
+  ],
+  authors: [{ name: 'SayTamil' }],
+  creator: 'SayTamil',
+  metadataBase: new URL('https://saytamil.com'),
+  alternates: {
+    canonical: '/',
+    languages: {
+      'en-IN': '/',
+      'ta-IN': '/ta',
+      'en-SG': '/sg',
+      'en-MY': '/my',
+    },
+  },
+  openGraph: {
+    title: 'SayTamil — AI-Powered தமிழ் இலக்கண சரிபார்ப்பு',
+    description:
+      'Fix Tamil grammar errors in seconds. Sandhi rules, verb forms, spelling — all explained clearly.',
+    url: 'https://saytamil.com',
+    siteName: 'SayTamil',
+    images: [
+      {
+        url: '/og/og-default.png',
+        width: 1200,
+        height: 630,
+        alt: 'SayTamil Tamil Grammar Checker Tool Screenshot',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SayTamil — Free AI Tamil Grammar Checker',
+    description: 'Fix Tamil grammar, spelling & sandhi errors instantly. Free, no signup.',
+    images: ['/og/og-default.png'],
+    creator: '@saytamil',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+  },
+  verification: {
+    google: 'YOUR_GOOGLE_SEARCH_CONSOLE_TOKEN',
+  },
+}

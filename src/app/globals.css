@@ -1,6 +1,3 @@
-/* Tamil Font Support */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -19,14 +16,14 @@ body {
   @apply bg-slate-950 text-white font-sans;
 }
 
-/* Tamil font class */
+/* Tamil font class — uses next/font variable */
 .font-tamil {
-  font-family: 'Noto Sans Tamil', sans-serif;
+  font-family: var(--font-tamil), 'Noto Sans Tamil', sans-serif;
 }
 
 /* Support Tamil text in all text areas and inputs */
 textarea, input {
-  font-family: 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-tamil), 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
 }
 
 ::-webkit-scrollbar {

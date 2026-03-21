@@ -43,10 +43,9 @@ export function Sidebar({ isOpen, onToggle, theme }: SidebarProps) {
         {/* Logo */}
         <div className={`p-4 border-b ${borderColor}`}>
           <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/saytamil-logo.png" alt="SayTamil" className="w-full h-full object-cover" />
             </div>
             <div>
               <h2 className={`font-bold text-base ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>SayTamil</h2>
@@ -61,7 +60,7 @@ export function Sidebar({ isOpen, onToggle, theme }: SidebarProps) {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            New Chat
+            ✦ New Write
           </button>
         </div>
 

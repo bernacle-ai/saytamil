@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Sidebar } from './Sidebar';
 import { Editor } from '../Editor/Editor';
 import { useChat } from '@/contexts/ChatContext';
@@ -46,7 +47,7 @@ export function MainLayout() {
               </svg>
             </button>
             <div className="flex items-center gap-3">
-              <h1 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>SayTamil</h1>
+              <Link href="/" className={`text-xl font-bold transition-colors ${theme === 'dark' ? 'text-white hover:text-teal-400' : 'text-gray-900 hover:text-teal-600'}`}>SayTamil</Link>
               <span className="px-2 py-1 bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-xs font-semibold rounded-full">AI</span>
             </div>
           </div>

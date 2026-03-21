@@ -6,7 +6,12 @@ module.exports = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        tamil: ['var(--font-tamil)', 'Noto Sans Tamil', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }
