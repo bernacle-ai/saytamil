@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import type { Suggestion, AnalysisResult } from '@/lib/gemini';
 import { SuggestionCard } from './SuggestionCard';
 import { TransliterationDropdown } from './TransliterationDropdown';
-import { transliterateLastWord, shouldShowSuggestions, TransliterationOption } from '@/lib/transliteration';
+import { transliterateToTamil, TransliterationOption } from '@/lib/transliteration';
 
 export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { theme?: 'dark' | 'light'; onOpenSettings?: () => void; globalFontSize?: number }) {
   const [content, setContent] = useState('');
@@ -34,6 +34,34 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { currentChatId, addMessage, currentChat, renameChat } = useChat();
   const { showToast } = useToast();
+
+  // Reset editor content when switching chats
+  useEffect(() => {
+    if (!currentChatId) return;
+    const saved = localStorage.getItem(`draft_${currentChatId}`);
+    if (saved !== null) {
+      // localStorage has content (including empty string = user cleared it)
+      setContent(saved);
+    } else {
+      // Fall back to last user message stored in DB/context
+      const chat = currentChat;
+      const lastUserMsg = chat?.messages?.filter(m => m.sender === 'user').slice(-1)[0];
+      setContent(lastUserMsg?.text || '');
+    }
+    setAnalysisResult(null);
+    setShowSuggestions(false);
+    setContentHistory([]);
+    setShowTransliteration(false);
+  }, [currentChatId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save content to localStorage as user types (debounced 500ms)
+  useEffect(() => {
+    if (!currentChatId) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem(`draft_${currentChatId}`, content);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [content, currentChatId]);
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
   const readingTime = Math.ceil(wordCount / 200);
@@ -132,8 +160,8 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
 
     document.body.removeChild(mirror);
 
-    // Position relative to textarea, accounting for scroll
-    const top = textareaRect.top + (cursorRect.top - mirrorRect.top) - textarea.scrollTop + cursor.offsetHeight + 4;
+    // Position relative to textarea, accounting for scroll — offset 28px below cursor line
+    const top = textareaRect.top + (cursorRect.top - mirrorRect.top) - textarea.scrollTop + cursor.offsetHeight + 28;
     const left = textareaRect.left + (cursorRect.left - mirrorRect.left);
 
     // Keep within viewport
@@ -145,25 +173,42 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
 
   // Handle transliteration on text change
   const translitSeqRef = useRef(0);
+  const cursorPosAtTrigger = useRef(0); // cursor position when dropdown was shown
+
+  // Get the English word immediately before the cursor
+  const getWordAtCursor = (text: string, cursorPos: number): string => {
+    const textBeforeCursor = text.substring(0, cursorPos);
+    const match = textBeforeCursor.match(/[a-zA-Z]+$/);
+    return match ? match[0] : '';
+  };
+
   useEffect(() => {
     const seq = ++translitSeqRef.current;
 
     const handleTransliteration = async () => {
-      if (!tamilMode || !shouldShowSuggestions(content)) {
+      if (!tamilMode) {
+        setShowTransliteration(false);
+        return;
+      }
+
+      const textarea = textareaRef.current;
+      const cursorPos = textarea?.selectionStart ?? content.length;
+      const wordAtCursor = getWordAtCursor(content, cursorPos);
+
+      if (!wordAtCursor) {
         setShowTransliteration(false);
         return;
       }
 
       setIsTransliterating(true);
-      const result = await transliterateLastWord(content);
+      const suggestions = await transliterateToTamil(wordAtCursor);
 
-      // Discard if a newer request has started
       if (seq !== translitSeqRef.current) return;
 
-      if (result.suggestions.length > 0) {
-        setTransliterationOptions(result.suggestions);
-        
-        const textarea = textareaRef.current;
+      if (suggestions.length > 0) {
+        cursorPosAtTrigger.current = cursorPos;
+        setTransliterationOptions(suggestions);
+
         if (textarea) {
           const pos = getCursorPixelPosition(textarea);
           setDropdownPosition(pos);
@@ -172,14 +217,14 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
       } else {
         setShowTransliteration(false);
       }
-      
+
       setIsTransliterating(false);
     };
 
     const debounceTimer = setTimeout(handleTransliteration, 800);
     return () => {
       clearTimeout(debounceTimer);
-      translitSeqRef.current++; // invalidate any in-flight call
+      translitSeqRef.current++;
     };
   }, [content, tamilMode]);
 
@@ -241,12 +286,27 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `tamil-chat-${Date.now()}.txt`;
+      a.download = `saytamil-${Date.now()}.txt`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('Exported as TXT', 'success');
     } else {
-      showToast('PDF export coming soon', 'info');
+      // Use browser print for proper Tamil Unicode rendering
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) { showToast('Allow popups to export PDF', 'warning'); setShowExportMenu(false); return; }
+      printWindow.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>SayTamil Export</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500&display=swap');
+  body { font-family: 'Noto Sans Tamil', sans-serif; font-size: 14px; line-height: 1.8; padding: 40px; color: #111; white-space: pre-wrap; word-break: break-word; }
+  @media print { body { padding: 20px; } }
+</style>
+</head><body>${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</body></html>`);
+      printWindow.document.close();
+      printWindow.onload = () => { printWindow.print(); };
+      showToast('Print dialog opened — save as PDF', 'success');
     }
     setShowExportMenu(false);
   };
@@ -390,16 +450,23 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
   };
 
   const handleTransliterationSelect = (tamilText: string) => {
-    const words = content.split(/\s+/);
-    if (words.length > 0) {
-      words[words.length - 1] = tamilText;
-      setContent(words.join(' ') + ' ');
-    }
+    const cursorPos = cursorPosAtTrigger.current;
+    const textBeforeCursor = content.substring(0, cursorPos);
+    const textAfterCursor = content.substring(cursorPos);
+
+    // Replace the English word immediately before the cursor
+    const newBefore = textBeforeCursor.replace(/[a-zA-Z]+$/, tamilText + ' ');
+    const newContent = newBefore + textAfterCursor;
+    setContent(newContent);
     setShowTransliteration(false);
-    
-    // Focus back on textarea
+
+    // Place cursor right after the inserted Tamil word + space
     setTimeout(() => {
-      textareaRef.current?.focus();
+      const ta = textareaRef.current;
+      if (ta) {
+        ta.focus();
+        ta.setSelectionRange(newBefore.length, newBefore.length);
+      }
     }, 0);
   };
 
@@ -432,14 +499,14 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
             }}
             disabled={contentHistory.length === 0}
             title="Undo"
-            className={`p-2 rounded-lg transition-colors disabled:opacity-30 ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+            className={`p-2.5 rounded-lg transition-colors disabled:opacity-30 ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6M3 10l6-6" />
             </svg>
           </button>
-          <button title="Redo" disabled className={`p-2 rounded-lg opacity-30 cursor-not-allowed ${theme === 'dark' ? 'text-slate-400' : 'text-gray-500'}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button title="Redo" disabled className={`p-2.5 rounded-lg opacity-30 cursor-not-allowed ${theme === 'dark' ? 'text-slate-400' : 'text-gray-500'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6M21 10l-6-6" />
             </svg>
           </button>
@@ -479,26 +546,26 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
 
           {/* B I U S */}
           <button onClick={() => insertText('**', '**')} title="Bold"
-            className={`p-2 rounded-lg transition-colors font-bold text-sm ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>B</button>
+            className={`p-2.5 rounded-lg transition-colors font-bold text-base ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>B</button>
           <button onClick={() => insertText('*', '*')} title="Italic"
-            className={`p-2 rounded-lg transition-colors italic text-sm ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>I</button>
+            className={`p-2.5 rounded-lg transition-colors italic text-base ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>I</button>
           <button onClick={() => insertText('<u>', '</u>')} title="Underline"
-            className={`p-2 rounded-lg transition-colors underline text-sm ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>U</button>
+            className={`p-2.5 rounded-lg transition-colors underline text-base ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>U</button>
           <button onClick={() => insertText('~~', '~~')} title="Strikethrough"
-            className={`p-2 rounded-lg transition-colors line-through text-sm ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>S</button>
+            className={`p-2.5 rounded-lg transition-colors line-through text-base ${theme === 'dark' ? 'text-slate-300 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-700 hover:bg-gray-100 hover:text-teal-600'}`}>S</button>
 
           <div className={`w-px h-5 mx-1 ${theme === 'dark' ? 'bg-slate-700' : 'bg-gray-300'}`} />
 
           {/* Bullet / Numbered list */}
           <button onClick={() => insertText('- ', '')} title="Bullet list"
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            className={`p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
             </svg>
           </button>
           <button onClick={() => insertText('1. ', '')} title="Numbered list"
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            className={`p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
             </svg>
           </button>
@@ -508,9 +575,9 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
             <button
               onClick={() => { setShowAlignMenu(!showAlignMenu); setShowTextStyleMenu(false); setShowExportMenu(false); }}
               title="Alignment"
-              className={`flex items-center gap-0.5 p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+              className={`flex items-center gap-0.5 p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h8" />
               </svg>
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -535,9 +602,9 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
           <button
             onClick={() => { const url = prompt('Enter URL:'); if (url) insertText('[', `](${url})`); }}
             title="Insert link"
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}
+            className={`p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </button>
@@ -546,11 +613,11 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
           <button
             onClick={() => setShowSearch(!showSearch)}
             title="Search in text"
-            className={`p-2 rounded-lg transition-colors ${showSearch
+            className={`p-2.5 rounded-lg transition-colors ${showSearch
               ? (theme === 'dark' ? 'bg-teal-900/40 text-teal-400' : 'bg-teal-50 text-teal-600')
               : (theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900')}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
@@ -560,21 +627,21 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
 
           {/* Save / Copy / Export / Clear */}
           <button onClick={handleSave} title="Save (Ctrl+S)"
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            className={`p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
             </svg>
           </button>
           <button onClick={handleCleanCopy} title="Copy clean text"
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            className={`p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
             </svg>
           </button>
           <div className="relative">
             <button onClick={() => { setShowExportMenu(!showExportMenu); setShowTextStyleMenu(false); setShowAlignMenu(false); }} title="Export"
-              className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              className={`p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-teal-400' : 'text-gray-500 hover:bg-gray-100 hover:text-teal-600'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </button>
@@ -586,8 +653,8 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
             )}
           </div>
           <button onClick={clearContent} title="Clear"
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-red-400' : 'text-gray-500 hover:bg-gray-100 hover:text-red-500'}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            className={`p-2.5 rounded-lg transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-red-400' : 'text-gray-500 hover:bg-gray-100 hover:text-red-500'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
@@ -651,8 +718,8 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
               }
             }} 
             placeholder="Start typing in Tamil or English... (Ctrl+Enter to analyze)" 
-            style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }} 
-            className={`w-full h-full px-6 py-4 bg-transparent ${theme === 'dark' ? 'text-white placeholder-slate-500' : 'text-gray-900 placeholder-gray-400'} focus:outline-none resize-none`} 
+            style={{ fontSize: `${fontSize}px`, lineHeight: '1.8' }} 
+            className={`w-full h-full px-6 py-4 bg-transparent ${theme === 'dark' ? 'text-slate-100 placeholder-slate-500' : 'text-gray-900 placeholder-gray-400'} focus:outline-none resize-none font-medium tracking-wide`} 
           />
           
           {/* Highlight overlay for suggestions */}

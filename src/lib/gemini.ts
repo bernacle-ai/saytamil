@@ -139,31 +139,19 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
 async function makeApiRequest(text: string, apiKey: string): Promise<AnalysisResult> {
   const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
 
-  const prompt = `You are a strict Tamil grammar checker. Your ONLY job is to find real grammar and spelling errors in Tamil text.
+  const prompt = `You are a strict Tamil grammar checker. Find only real grammar and spelling errors.
 
-Text to check: "${text}"
+Text: "${text}"
 
 Rules:
 - ONLY flag actual grammar mistakes or misspelled Tamil words
-- Do NOT suggest style changes, rewording, or "improvements"
-- Do NOT flag correct sentences just because they are simple
-- If the text is grammatically correct, return empty suggestions
-- Keep suggestions minimal — only what is clearly wrong
+- Do NOT suggest style changes or rewording
+- If text is correct, return empty suggestions array
 - Write ALL reasons in Tamil only
+- Keep reasons short (under 10 words each)
 
-Return ONLY this JSON, no markdown:
-{
-  "suggestions": [
-    {
-      "type": "grammar|spelling",
-      "original": "exact wrong text from input",
-      "suggestion": "corrected text",
-      "reason": "தமிழில் குறுகிய விளக்கம்"
-    }
-  ],
-  "summary": "ஒரு வரி மதிப்பீடு தமிழில்",
-  "score": 90
-}`;
+Return ONLY valid JSON, no markdown, no extra text:
+{"suggestions":[{"type":"grammar|spelling","original":"wrong text","suggestion":"corrected","reason":"தமிழில்"}],"summary":"தமிழில் ஒரு வரி","score":90}`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -172,7 +160,7 @@ Return ONLY this JSON, no markdown:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+      generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
     }),
   });
 
@@ -194,7 +182,19 @@ Return ONLY this JSON, no markdown:
     .replace(/```\n?/g, "")
     .trim();
 
-  const parsed = JSON.parse(cleanText);
+  // Extract the first complete JSON object from the response
+  const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON found in API response');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch {
+    // Last resort: try to salvage a truncated response by closing open structures
+    throw new Error('Invalid JSON in API response — the model may have been cut off. Please try again.');
+  }
 
   const suggestionsWithIds =
     parsed.suggestions?.map((s: { type: string; original: string; suggestion: string; reason: string }, index: number) => ({
