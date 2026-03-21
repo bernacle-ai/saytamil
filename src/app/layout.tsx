@@ -35,9 +35,6 @@ export default function RootLayout({
         {/* Hreflang tags */}
         <link rel="alternate" hrefLang="en-IN" href="https://saytamil.com/" />
         <link rel="alternate" hrefLang="ta" href="https://saytamil.com/ta" />
-        <link rel="alternate" hrefLang="en-SG" href="https://saytamil.com/sg" />
-        <link rel="alternate" hrefLang="en-MY" href="https://saytamil.com/my" />
-        <link rel="alternate" hrefLang="en-LK" href="https://saytamil.com/lk" />
         <link rel="alternate" hrefLang="x-default" href="https://saytamil.com/" />
         {/* JSON-LD Structured Data */}
         <script
