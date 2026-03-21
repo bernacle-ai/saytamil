@@ -95,35 +95,45 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
 
   if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
     const waitTime = Math.ceil((MIN_REQUEST_INTERVAL - timeSinceLastRequest) / 1000);
-    throw new Error(`Please wait ${waitTime} seconds before analyzing again (rate limit)`);
+    throw new ApiRequestError(`Please wait ${waitTime} seconds before analyzing again`, 429);
   }
 
   lastRequestTime = now;
 
   const keys = getApiKeys();
   let lastError: Error | null = null;
+  let allRateLimited = true;
 
   for (let attempt = 0; attempt < keys.length; attempt++) {
     const apiKey = getNextApiKey();
 
     try {
-      return await makeApiRequest(text, apiKey);
+      const result = await makeApiRequest(text, apiKey);
+      return result;
     } catch (error) {
       lastError = error as Error;
 
       if (error instanceof ApiRequestError && RETRYABLE_STATUSES.has(error.status)) {
         markKeyFailure(apiKey, error.status === 429);
+        if (error.status !== 429) allRateLimited = false;
         console.log(`Key ${attempt + 1} failed with status ${error.status}, trying next key...`);
         continue;
       }
 
+      allRateLimited = false;
       throw error;
     }
   }
 
-  throw new Error(
-    lastError?.message || 'All API keys exhausted. Please wait a few minutes and try again.'
-  );
+  // All keys exhausted — surface the right status code
+  if (allRateLimited) {
+    throw new ApiRequestError(
+      'We are facing high server load as a new application. We are handling this with high maintenance — please bear with us and try again in a few minutes.',
+      429
+    );
+  }
+
+  throw new Error(lastError?.message || 'All API keys exhausted. Please try again later.');
 }
 
 async function makeApiRequest(text: string, apiKey: string): Promise<AnalysisResult> {

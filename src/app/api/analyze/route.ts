@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import { analyzeText } from '@/lib/gemini';
+import { analyzeText, ApiRequestError } from '@/lib/gemini';
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
     const result = await analyzeText(text);
     return NextResponse.json(result);
   } catch (error) {
+    const status = error instanceof ApiRequestError ? error.status : 500;
     const message = error instanceof Error ? error.message : 'Analysis failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status });
   }
 }
