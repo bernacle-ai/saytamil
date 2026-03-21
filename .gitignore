@@ -1,5 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
+node_modules/
 # dependencies
 /node_modules
 /.pnp
@@ -12,7 +12,8 @@
 HOMEPAGE_SPEC.md
 # testing
 /coverage
-
+node_modules
+.next
 # next.js
 /.next/
 /out/

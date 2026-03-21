@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Noto_Sans_Tamil, Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { Analytics } from '@vercel/analytics/next';
 import { defaultMetadata } from '@/lib/seo/metadata';
 import {
   softwareApplicationSchema,
@@ -52,6 +53,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
