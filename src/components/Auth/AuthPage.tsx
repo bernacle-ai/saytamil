@@ -72,8 +72,8 @@ function MoonIcon() {
   );
 }
 
-export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
-  const [mode, setMode] = useState<Mode>('login');
+export function AuthPage({ onAuthSuccess, initialMode = 'login' }: { onAuthSuccess: () => void; initialMode?: Mode }) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [dark, setDark] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

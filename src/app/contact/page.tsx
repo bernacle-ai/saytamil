@@ -4,8 +4,9 @@ import { Footer } from '@/components/home/Footer';
 import { ContactForm } from '@/components/home/ContactForm';
 
 export const metadata: Metadata = {
-  title: 'Contact — SayTamil Tamil Grammar Checker',
-  description: 'Get in touch with the SayTamil team. Questions, feedback, or partnership inquiries.',
+  title: 'Contact SayTamil — Tamil Grammar Checker Support',
+  description: 'Get in touch with the SayTamil team. Questions about the Tamil grammar checker, pricing, or API access.',
+  alternates: { canonical: 'https://www.saytamil.com/contact' },
 };
 
 export default function ContactPage() {
