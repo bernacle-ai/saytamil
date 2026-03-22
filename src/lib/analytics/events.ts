@@ -20,7 +20,7 @@ export function trackCopyCorrectedText() {
   gtag('event', 'copy_corrected_text');
 }
 
-export function trackSignupClick(location: 'hero' | 'nav' | 'pricing' | 'cta_banner') {
+export function trackSignupClick(location: 'hero' | 'nav' | 'pricing' | 'cta_banner' | 'widget') {
   gtag('event', 'signup_click', { cta_location: location });
 }
 
