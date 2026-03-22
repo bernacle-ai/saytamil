@@ -21,19 +21,17 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/'],
       },
       {
-        // Allow GPTBot (OpenAI) to crawl for AI indexing
+        // Allow GPTBot (OpenAI) to crawl everything public
         userAgent: 'GPTBot',
         allow: '/',
-        disallow: ['/api/'],
       },
       {
-        // Allow Claude/Anthropic crawler
+        // Allow Claude/Anthropic crawler everything public
         userAgent: 'ClaudeBot',
         allow: '/',
-        disallow: ['/api/'],
       },
     ],
-    sitemap: 'https://saytamil.com/sitemap.xml',
-    host: 'https://saytamil.com',
+    sitemap: 'https://www.saytamil.com/sitemap.xml',
+    host: 'https://www.saytamil.com',
   }
 }

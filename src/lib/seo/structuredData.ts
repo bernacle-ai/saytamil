@@ -11,7 +11,7 @@ export const softwareApplicationSchema = {
   },
   description:
     'AI-powered Tamil grammar and spell checker. Supports sandhi rules, verb forms, Tanglish input, and more.',
-  url: 'https://saytamil.com',
+  url: 'https://www.saytamil.com',
 }
 
 export const faqSchema = {
@@ -79,7 +79,7 @@ export const faqSchema = {
       name: 'Is there a browser extension?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'A Chrome extension is coming soon. For now, use the web tool at saytamil.com — it works on any browser.',
+        text: 'A Chrome extension is coming soon. For now, use the web tool at www.saytamil.com — it works on any browser.',
       },
     },
   ],
@@ -89,8 +89,8 @@ export const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'SayTamil',
-  url: 'https://saytamil.com',
-  logo: 'https://saytamil.com/saytamil-logo.png',
+  url: 'https://www.saytamil.com',
+  logo: 'https://www.saytamil.com/saytamil-logo.png',
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'customer support',

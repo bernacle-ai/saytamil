@@ -25,7 +25,7 @@ export const defaultMetadata: Metadata = {
   ],
   authors: [{ name: 'SayTamil' }],
   creator: 'SayTamil',
-  metadataBase: new URL('https://saytamil.com'),
+  metadataBase: new URL('https://www.saytamil.com'),
   icons: {
     icon: [
       { url: '/favicons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -50,7 +50,7 @@ export const defaultMetadata: Metadata = {
     title: 'SayTamil — Free AI Tamil Grammar Checker',
     description:
       'Fix Tamil grammar errors in seconds. Sandhi rules, verb forms, spelling — all explained clearly.',
-    url: 'https://saytamil.com',
+    url: 'https://www.saytamil.com',
     siteName: 'SayTamil',
     images: [
       {

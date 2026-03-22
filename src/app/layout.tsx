@@ -36,9 +36,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${notoSansTamil.variable}`}>
       <head>
         {/* Hreflang tags */}
-        <link rel="alternate" hrefLang="en-IN" href="https://saytamil.com/" />
-        <link rel="alternate" hrefLang="ta" href="https://saytamil.com/ta" />
-        <link rel="alternate" hrefLang="x-default" href="https://saytamil.com/" />
+        <link rel="alternate" hrefLang="en-IN" href="https://www.saytamil.com/" />
+        <link rel="alternate" hrefLang="ta" href="https://www.saytamil.com/ta" />
+        <link rel="alternate" hrefLang="x-default" href="https://www.saytamil.com/" />
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
