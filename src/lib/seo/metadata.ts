@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 
 export const defaultMetadata: Metadata = {
   title: {
-    default: 'SayTamil — Free AI Tamil Grammar Checker | தமிழ் இலக்கணம் சரிபார்க்கவும்',
-    template: '%s | SayTamil Tamil Grammar Checker',
+    default: 'SayTamil — Free AI Tamil Grammar Checker',
+    template: '%s | SayTamil',
   },
   description:
     'Free AI Tamil grammar checker. Fix grammar, spelling, sandhi rules & verb forms instantly. Trusted by students, writers & businesses. No signup needed.',
@@ -25,7 +25,7 @@ export const defaultMetadata: Metadata = {
   ],
   authors: [{ name: 'SayTamil' }],
   creator: 'SayTamil',
-  metadataBase: new URL('https://saytamil.com'),
+  metadataBase: new URL('https://www.saytamil.com'),
   icons: {
     icon: [
       { url: '/favicons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -47,10 +47,10 @@ export const defaultMetadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'SayTamil — AI-Powered தமிழ் இலக்கண சரிபார்ப்பு',
+    title: 'SayTamil — Free AI Tamil Grammar Checker',
     description:
       'Fix Tamil grammar errors in seconds. Sandhi rules, verb forms, spelling — all explained clearly.',
-    url: 'https://saytamil.com',
+    url: 'https://www.saytamil.com',
     siteName: 'SayTamil',
     images: [
       {
@@ -76,6 +76,6 @@ export const defaultMetadata: Metadata = {
     googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
   },
   verification: {
-    google: 'YOUR_GOOGLE_SEARCH_CONSOLE_TOKEN',
+    google: 'RNBMLOIbF6kFAJe7FK9d6pRFrMHsiLoaQXmI33FJaDQ',
   },
 }

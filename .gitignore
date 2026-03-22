@@ -1,5 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
+node_modules/
 # dependencies
 /node_modules
 /.pnp
@@ -10,9 +10,12 @@
 !.yarn/releases
 !.yarn/versions
 HOMEPAGE_SPEC.md
+INDEXING_KIRO_SPEC.md
 # testing
 /coverage
-
+node_modules
+.next
+ANALYTICS_KIRO_SPEC.md
 # next.js
 /.next/
 /out/
@@ -32,6 +35,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

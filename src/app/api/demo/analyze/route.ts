@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeText } from '@/lib/gemini';
+import { analyzeText, ApiRequestError } from '@/lib/gemini';
 
 // In-memory session store: sessionId -> { count, resetAt }
 // This is per-instance (fine for single server / serverless with short TTL)
@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ...result, remaining, limit: DEMO_LIMIT });
   } catch (e) {
+    const status = e instanceof ApiRequestError ? e.status : 500;
     const msg = e instanceof Error ? e.message : 'Analysis failed';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status });
   }
 }

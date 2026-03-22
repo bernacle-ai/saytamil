@@ -6,6 +6,8 @@ import { TransliterationDropdown } from '@/components/Editor/TransliterationDrop
 import { transliterateLastWord, shouldShowSuggestions, type TransliterationOption } from '@/lib/transliteration';
 import type { AnalysisResult, Suggestion } from '@/lib/gemini';
 
+import { trackGrammarCheck, trackCopyCorrectedText, trackSignupClick } from '@/lib/analytics/events';
+
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
   let id = sessionStorage.getItem('demo_session');
@@ -72,6 +74,7 @@ export function HeroSection() {
       const data = await res.json();
       if (res.status === 429) { setLimitHit(true); setRemaining(0); setError(data.message); return; }
       if (!res.ok) { setError(data.error || 'Analysis failed'); return; }
+      trackGrammarCheck(content.length, tamilMode ? 'tanglish' : 'direct');
       setResult(data); setRemaining(data.remaining ?? 0);
       if (data.remaining === 0) setLimitHit(true);
     } catch { setError('Network error. Please try again.'); }
@@ -118,7 +121,8 @@ export function HeroSection() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
           <Link href="/tool" className="font-semibold px-8 py-3 rounded-xl text-lg text-white transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#00d4b4,#7c6af7)', boxShadow: '0 4px 24px rgba(0,212,180,0.35)' }}>
+            style={{ background: 'linear-gradient(135deg,#00d4b4,#7c6af7)', boxShadow: '0 4px 24px rgba(0,212,180,0.35)' }}
+            onClick={() => trackSignupClick('hero')}>
             Get Full Access — Free
           </Link>
           <a href="#how-it-works" className="border border-gray-200 hover:border-teal-300 text-gray-600 hover:text-teal-600 font-semibold px-8 py-3 rounded-xl text-lg transition-colors bg-white">
@@ -174,7 +178,7 @@ export function HeroSection() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
                 </button>
                 <div className="w-px h-5 mx-1 bg-gray-200" />
-                <button onClick={() => navigator.clipboard.writeText(content)} title="Copy" className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-teal-600 transition-colors">
+                <button onClick={() => { navigator.clipboard.writeText(content); trackCopyCorrectedText(); }} title="Copy" className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-teal-600 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                 </button>
                 <button onClick={() => setContent('')} title="Clear" className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-red-500 transition-colors">

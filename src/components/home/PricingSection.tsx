@@ -1,14 +1,37 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
+import { trackUpgradeClick, trackPricingView } from '@/lib/analytics/events';
 
 const plans = [
-  { name: 'Free', price: '₹0', sub: '$0 / month', cta: 'Start Free', href: '/tool', highlight: false, features: ['10 checks/day','1,000 characters/check','Grammar & spelling','Tanglish input','1 seat'], missing: ['Chat history','API access','Priority support'] },
-  { name: 'Pro', price: '₹299', sub: '/month', cta: 'Get Pro', href: '/tool', highlight: true, features: ['Unlimited checks','10,000 characters/check','Grammar & spelling','Tanglish input','30-day history','Priority support','1 seat'], missing: ['API access'] },
-  { name: 'Team', price: '₹999', sub: '/month', cta: 'Contact Us', href: '/contact', highlight: false, features: ['Unlimited checks','10,000 characters/check','Grammar & spelling','Tanglish input','90-day history','API access','Priority support','Up to 10 seats'], missing: [] },
-]
+  { name: 'Free', price: '₹0', sub: '$0 / month', cta: 'Start Free', href: '/tool', highlight: false, plan: null, features: ['10 checks/day','1,000 characters/check','Grammar & spelling','Tanglish input','1 seat'], missing: ['Chat history','API access','Priority support'] },
+  { name: 'Pro', price: '₹299', sub: '/month', cta: 'Get Pro', href: '/tool', highlight: true, plan: 'pro' as const, features: ['Unlimited checks','10,000 characters/check','Grammar & spelling','Tanglish input','30-day history','Priority support','1 seat'], missing: ['API access'] },
+  { name: 'Team', price: '₹999', sub: '/month', cta: 'Contact Us', href: '/contact', highlight: false, plan: 'team' as const, features: ['Unlimited checks','10,000 characters/check','Grammar & spelling','Tanglish input','90-day history','API access','Priority support','Up to 10 seats'], missing: [] },
+];
 
 export function PricingSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const trackedRef = useRef(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !trackedRef.current) {
+          trackedRef.current = true;
+          trackPricingView();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section id="pricing" className="py-24 px-4 bg-gray-50">
+    <section id="pricing" ref={sectionRef} className="py-24 px-4 bg-gray-50">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Simple, Honest Pricing</h2>
@@ -25,6 +48,7 @@ export function PricingSection() {
               </div>
               <p className={`text-sm mb-6 ${p.highlight ? 'text-teal-500' : 'text-gray-400'}`}>{p.sub}</p>
               <Link href={p.href}
+                onClick={() => p.plan && trackUpgradeClick(p.plan)}
                 className={`block text-center font-semibold py-3 rounded-xl mb-6 transition-all text-sm ${p.highlight ? 'text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                 style={p.highlight
                   ? { background: 'linear-gradient(135deg,#00d4b4,#7c6af7)', boxShadow: '0 4px 16px rgba(0,212,180,0.25)' }
@@ -48,5 +72,5 @@ export function PricingSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

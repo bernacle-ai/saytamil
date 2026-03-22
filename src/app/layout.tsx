@@ -2,12 +2,15 @@ import type { Metadata } from 'next';
 import { Noto_Sans_Tamil, Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { Analytics } from '@vercel/analytics/next';
 import { defaultMetadata } from '@/lib/seo/metadata';
 import {
   softwareApplicationSchema,
   faqSchema,
   organizationSchema,
 } from '@/lib/seo/structuredData';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { MicrosoftClarity } from '@/components/analytics/MicrosoftClarity';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -33,9 +36,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${notoSansTamil.variable}`}>
       <head>
         {/* Hreflang tags */}
-        <link rel="alternate" hrefLang="en-IN" href="https://saytamil.com/" />
-        <link rel="alternate" hrefLang="ta" href="https://saytamil.com/ta" />
-        <link rel="alternate" hrefLang="x-default" href="https://saytamil.com/" />
+        <link rel="alternate" hrefLang="en-IN" href="https://www.saytamil.com/" />
+        <link rel="alternate" hrefLang="ta" href="https://www.saytamil.com/ta" />
+        <link rel="alternate" hrefLang="x-default" href="https://www.saytamil.com/" />
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
@@ -52,6 +55,9 @@ export default function RootLayout({
       </head>
       <body className="font-sans">
         <Providers>{children}</Providers>
+        <Analytics />
+        <GoogleAnalytics />
+        <MicrosoftClarity />
       </body>
     </html>
   );
