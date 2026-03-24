@@ -25,8 +25,8 @@ export class ApiRequestError extends Error {
 // Model fallback chain — primary first, then fallbacks on 503/UNAVAILABLE
 const MODEL_CHAIN = [
   process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  process.env.GEMINI_FALLBACK_MODEL_1 || 'gemini-2.0-flash',
+  process.env.GEMINI_FALLBACK_MODEL_2 || 'gemini-1.5-flash',
 ];
 
 // API Key rotation

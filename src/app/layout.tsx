@@ -3,6 +3,7 @@ import { Noto_Sans_Tamil, Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { defaultMetadata } from '@/lib/seo/metadata';
 import {
   softwareApplicationSchema,
@@ -56,6 +57,7 @@ export default function RootLayout({
       <body className="font-sans">
         <Providers>{children}</Providers>
         <Analytics />
+        <SpeedInsights />
         <GoogleAnalytics />
         <MicrosoftClarity />
       </body>
