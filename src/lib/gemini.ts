@@ -22,9 +22,9 @@ export class ApiRequestError extends Error {
   }
 }
 
-// Model fallback chain — primary first, then fallbacks on 503/UNAVAILABLE
+// Model fallback chain — primary first, then fallbacks on 503/404/UNAVAILABLE
 const MODEL_CHAIN = [
-  process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite',
+  process.env.GEMINI_MODEL || 'gemini-2.5-flash-preview-04-17',
   process.env.GEMINI_FALLBACK_MODEL_1 || 'gemini-2.0-flash',
   process.env.GEMINI_FALLBACK_MODEL_2 || 'gemini-1.5-flash',
 ];
@@ -77,10 +77,9 @@ function markKeyFailure(key: string, is429: boolean = false) {
   keyLastFailureTime.set(key, Date.now());
 }
 
-function isUnavailable(error: unknown): boolean {
-  if (error instanceof ApiRequestError && error.status === 503) return true;
-  if (error instanceof Error && error.message.includes('UNAVAILABLE')) return true;
-  return false;
+function shouldSkipModel(error: unknown): boolean {
+  if (!(error instanceof ApiRequestError)) return false;
+  return error.status === 503 || error.status === 404;
 }
 
 export async function analyzeText(text: string): Promise<AnalysisResult> {
@@ -89,6 +88,8 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
 
   // Try each model in the fallback chain
   for (const model of MODEL_CHAIN) {
+    let skipModel = false;
+
     // Try each key for this model
     for (let attempt = 0; attempt < Math.max(keys.length, 1); attempt++) {
       const apiKey = getNextApiKey();
@@ -110,9 +111,10 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
             markKeyFailure(apiKey, true);
             continue; // try next key
           }
-          if (error.status === 503 || isUnavailable(error)) {
+          if (error.status === 503 || error.status === 404) {
             markKeyFailure(apiKey);
-            break; // 503 = model overloaded, skip to next model immediately
+            skipModel = true;
+            break; // model unavailable or not found — skip to next model
           }
           if ([500, 502, 504].includes(error.status)) {
             markKeyFailure(apiKey);
@@ -124,9 +126,8 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
       }
     }
 
-    // If we broke out due to 503, try next model
-    if (lastError && isUnavailable(lastError)) {
-      console.log(`Model ${model} unavailable, trying next model in chain...`);
+    if (skipModel) {
+      console.log(`Model ${model} unavailable/not found, trying next model in chain...`);
       lastError = null;
       continue;
     }
@@ -177,6 +178,9 @@ Return ONLY valid JSON, no markdown, no extra text:
     if (status === 503 || errMsg.includes('UNAVAILABLE') || errMsg.includes('high demand')) {
       throw new ApiRequestError(`Model ${model} unavailable: ${errMsg}`, 503);
     }
+    if (status === 404 || errMsg.includes('no longer available') || errMsg.includes('NOT_FOUND')) {
+      throw new ApiRequestError(`Model ${model} not found: ${errMsg}`, 404);
+    }
     console.error(`Gemini API Error [${model}]:`, status, errorData);
     throw new ApiRequestError(`API request failed: ${status}`, status);
   }
@@ -188,6 +192,9 @@ Return ONLY valid JSON, no markdown, no extra text:
     const errMsg = data.error.message || '';
     if (data.error.status === 'UNAVAILABLE' || errMsg.includes('high demand')) {
       throw new ApiRequestError(`Model ${model} unavailable: ${errMsg}`, 503);
+    }
+    if (data.error.status === 'NOT_FOUND' || errMsg.includes('no longer available')) {
+      throw new ApiRequestError(`Model ${model} not found: ${errMsg}`, 404);
     }
     throw new ApiRequestError(`API error: ${errMsg}`, data.error.code || 500);
   }
