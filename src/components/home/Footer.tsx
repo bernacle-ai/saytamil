@@ -27,9 +27,12 @@ export function Footer() {
             <p className="text-white font-semibold text-sm mb-4">Product</p>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/tool" className="hover:text-teal-400 transition-colors">Tool</Link></li>
-              <li><Link href="#pricing" className="hover:text-teal-400 transition-colors">Pricing</Link></li>
+              <li><Link href="/tamil-grammar-checker" className="hover:text-teal-400 transition-colors">Tamil Grammar Guide</Link></li>
+              <li><Link href="/sandhi-rules" className="hover:text-teal-400 transition-colors">Sandhi Rules</Link></li>
+              <li><Link href="/tanglish-to-tamil" className="hover:text-teal-400 transition-colors">Tanglish to Tamil</Link></li>
+              <li><Link href="/tamil-typing" className="hover:text-teal-400 transition-colors">Tamil Typing</Link></li>
+              <li><Link href="/pricing" className="hover:text-teal-400 transition-colors">Pricing</Link></li>
               <li><span className="text-gray-700">API (coming soon)</span></li>
-              <li><span className="text-gray-700">Chrome Extension (coming soon)</span></li>
             </ul>
           </div>
 
@@ -37,8 +40,7 @@ export function Footer() {
           <div>
             <p className="text-white font-semibold text-sm mb-4">Company</p>
             <ul className="space-y-2.5 text-sm">
-              <li><Link href="#" className="hover:text-teal-400 transition-colors">About</Link></li>
-              <li><Link href="#" className="hover:text-teal-400 transition-colors">Blog</Link></li>
+              <li><Link href="/about" className="hover:text-teal-400 transition-colors">About</Link></li>
               <li><Link href="/contact" className="hover:text-teal-400 transition-colors">Contact</Link></li>
             </ul>
           </div>

@@ -9,6 +9,7 @@ import {
   softwareApplicationSchema,
   faqSchema,
   organizationSchema,
+  websiteSchema,
 } from '@/lib/seo/structuredData';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { MicrosoftClarity } from '@/components/analytics/MicrosoftClarity';
@@ -41,6 +42,10 @@ export default function RootLayout({
         <link rel="alternate" hrefLang="ta" href="https://www.saytamil.com/ta" />
         <link rel="alternate" hrefLang="x-default" href="https://www.saytamil.com/" />
         {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}

@@ -21,7 +21,7 @@ export function NavBar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-7">
-          {[['#features','Features'],['#pricing','Pricing'],['#how-it-works','How it Works'],['#faq','FAQ'],['/contact','Contact']].map(([href, label]) => (
+          {[['#features','Features'],['#pricing','Pricing'],['#how-it-works','How it Works'],['#faq','FAQ'],['/contact','Contact'],['/tamil-grammar-checker','Tamil Grammar'],['/tanglish-to-tamil','Tanglish']].map(([href, label]) => (
             <Link key={label} href={href} className="text-sm text-gray-500 hover:text-teal-600 transition-colors font-medium">{label}</Link>
           ))}
         </div>
@@ -53,7 +53,7 @@ export function NavBar() {
 
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 flex flex-col gap-4 shadow-lg">
-          {[['#features','Features'],['#pricing','Pricing'],['#how-it-works','How it Works'],['#faq','FAQ'],['/contact','Contact']].map(([href, label]) => (
+          {[['#features','Features'],['#pricing','Pricing'],['#how-it-works','How it Works'],['#faq','FAQ'],['/contact','Contact'],['/tamil-grammar-checker','Tamil Grammar'],['/tanglish-to-tamil','Tanglish']].map(([href, label]) => (
             <Link key={label} href={href} className="text-sm text-gray-600 hover:text-teal-600 font-medium" onClick={() => setMenuOpen(false)}>{label}</Link>
           ))}
           <hr className="border-gray-100" />
