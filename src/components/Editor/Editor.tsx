@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
@@ -357,7 +357,7 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
       if (usageRes.ok) {
         const usage = await usageRes.json();
         if (usage.remaining <= 0) {
-          showToast(`Daily limit reached (${usage.limit}/day on free plan). Try again tomorrow.`, 'error');
+          showToast(`Monthly limit reached (${usage.limit} checks/month on free plan). Resets next month.`, 'error');
           return;
         }
       }
@@ -838,7 +838,7 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
               {usage && (
                 <>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>Daily suggestions used</span>
+                    <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>Monthly credits used</span>
                     <span className={`font-medium ${usage.remaining === 0 ? 'text-red-500' : theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
                       {usage.used}/{usage.limit}
                     </span>
@@ -868,10 +868,10 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
                 </div>
                 <div>
                   <p className={`text-sm font-semibold mb-0.5 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                    Daily limit reached
+                    Monthly limit reached
                   </p>
                   <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Resets at midnight
+                    Resets on the 1st of next month
                   </p>
                 </div>
               </div>
