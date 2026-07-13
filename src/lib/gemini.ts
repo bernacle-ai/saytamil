@@ -29,107 +29,52 @@ const MODEL_CHAIN = [
   process.env.GEMINI_FALLBACK_MODEL_2 || 'gemini-1.5-flash',
 ];
 
-// API Key rotation
-let currentKeyIndex = 0;
-const keyFailureCount = new Map<string, number>();
-const keyLastFailureTime = new Map<string, number>();
-const KEY_COOLDOWN = 60000; // 1 min cooldown after 3 failures
+// Rate limiting
+let globalLastRequestTime = 0;
+const MIN_INTERVAL = 1000; // 1s
 
-// Per-key rate limiting (replaces global throttle — no more artificial 3s delay)
-const keyLastRequestTime = new Map<string, number>();
-const KEY_MIN_INTERVAL = 1000; // 1s per key (much less aggressive)
-
-function getApiKeys(): string[] {
-  const keys: string[] = [];
-  if (process.env.GEMINI_API_KEY)   keys.push(process.env.GEMINI_API_KEY);
-  if (process.env.GEMINI_API_KEY_2) keys.push(process.env.GEMINI_API_KEY_2);
-  if (process.env.GEMINI_API_KEY_3) keys.push(process.env.GEMINI_API_KEY_3);
-  return keys;
-}
-
-function getNextApiKey(): string {
-  const keys = getApiKeys();
-  if (keys.length === 0) throw new Error('No API keys configured. Add GEMINI_API_KEY to .env.local');
-
-  const now = Date.now();
-  for (let i = 0; i < keys.length; i++) {
-    const idx = (currentKeyIndex + i) % keys.length;
-    const key = keys[idx];
-    const failures = keyFailureCount.get(key) || 0;
-    const lastFailure = keyLastFailureTime.get(key) || 0;
-
-    if (failures >= 3 && (now - lastFailure) < KEY_COOLDOWN) continue;
-    if (failures >= 3) keyFailureCount.set(key, 0); // cooldown expired, reset
-
-    currentKeyIndex = (idx + 1) % keys.length;
-    return key;
-  }
-
-  // All keys in cooldown — use least recently failed
-  return keys.reduce((best, key) => {
-    const t = keyLastFailureTime.get(key) || 0;
-    return t < (keyLastFailureTime.get(best) || 0) ? key : best;
-  }, keys[0]);
-}
-
-function markKeyFailure(key: string, is429: boolean = false) {
-  keyFailureCount.set(key, (keyFailureCount.get(key) || 0) + (is429 ? 3 : 1));
-  keyLastFailureTime.set(key, Date.now());
-}
-
-function shouldSkipModel(error: unknown): boolean {
-  if (!(error instanceof ApiRequestError)) return false;
-  return error.status === 503 || error.status === 404;
+function getApiKey(): string {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error('No API keys configured. Add GEMINI_API_KEY to .env.local');
+  return key;
 }
 
 export async function analyzeText(text: string): Promise<AnalysisResult> {
-  const keys = getApiKeys();
+  const apiKey = getApiKey();
   let lastError: Error | null = null;
 
   // Try each model in the fallback chain
   for (const model of MODEL_CHAIN) {
-    let skipModel = false;
-
-    // Try each key for this model
-    for (let attempt = 0; attempt < Math.max(keys.length, 1); attempt++) {
-      const apiKey = getNextApiKey();
-
-      // Per-key rate limit check (non-blocking — just skip to next key if too soon)
-      const now = Date.now();
-      const lastReq = keyLastRequestTime.get(apiKey) || 0;
-      if (now - lastReq < KEY_MIN_INTERVAL && keys.length > 1) continue;
-
-      try {
-        keyLastRequestTime.set(apiKey, Date.now());
-        const result = await makeApiRequest(text, apiKey, model);
-        return result;
-      } catch (error) {
-        lastError = error as Error;
-
-        if (error instanceof ApiRequestError) {
-          if (error.status === 429) {
-            markKeyFailure(apiKey, true);
-            continue; // try next key
-          }
-          if (error.status === 503 || error.status === 404) {
-            markKeyFailure(apiKey);
-            skipModel = true;
-            break; // model unavailable or not found — skip to next model
-          }
-          if ([500, 502, 504].includes(error.status)) {
-            markKeyFailure(apiKey);
-            continue; // transient server error, try next key
-          }
-        }
-
-        throw error; // non-retryable (400, 401, etc.)
-      }
+    // Rate limit check
+    const now = Date.now();
+    const timeSinceLastReq = now - globalLastRequestTime;
+    if (timeSinceLastReq < MIN_INTERVAL) {
+      await new Promise(resolve => setTimeout(resolve, MIN_INTERVAL - timeSinceLastReq));
     }
+    
+    try {
+      globalLastRequestTime = Date.now();
+      const result = await makeApiRequest(text, apiKey, model);
+      return result;
+    } catch (error) {
+      lastError = error as Error;
 
-    if (skipModel) {
-      console.log(`Model ${model} unavailable/not found, trying next model in chain...`);
-      lastError = null;
-      continue;
+      if (error instanceof ApiRequestError) {
+        if (error.status === 429) {
+          console.log(`Model ${model} rate limited, trying next model in chain...`);
+          continue; // try next model
+        }
+        if (error.status === 503 || error.status === 404) {
+          console.log(`Model ${model} unavailable/not found, trying next model in chain...`);
+          continue; // model unavailable or not found — skip to next model
+        }
+        if ([500, 502, 504].includes(error.status)) {
+          console.log(`Model ${model} transient error, trying next model in chain...`);
+          continue; // transient server error, try next model
+        }
+      }
+
+      throw error; // non-retryable (400, 401, etc.)
     }
   }
 
