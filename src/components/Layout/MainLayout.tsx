@@ -11,6 +11,7 @@ export function MainLayout() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(16);
+  const [usage, setUsage] = useState<{ used: number; limit: number; remaining: number } | null>(null);
   const { currentChatId } = useChat();
 
   useEffect(() => {
@@ -18,6 +19,13 @@ export function MainLayout() {
     if (savedTheme) setTheme(savedTheme);
     const savedFont = localStorage.getItem('tamil_chat_font');
     if (savedFont) setFontSize(Number(savedFont));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/usage')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setUsage(data); })
+      .catch(() => {});
   }, []);
 
   const toggleTheme = () => {
@@ -52,6 +60,27 @@ export function MainLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Credit balance pill */}
+            {usage && (
+              <div
+                title={`${usage.remaining} checks remaining this month`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                  usage.remaining === 0
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                    : usage.remaining <= 5
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                    : theme === 'dark'
+                    ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
+                    : 'bg-teal-50 border-teal-200 text-teal-700'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  usage.remaining === 0 ? 'bg-red-400' : usage.remaining <= 5 ? 'bg-amber-400' : 'bg-teal-400'
+                }`} />
+                <span>{usage.remaining}/{usage.limit}</span>
+                <span className={theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}>credits</span>
+              </div>
+            )}
             <button
               onClick={toggleTheme}
               className={`p-2 ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-gray-100'} rounded-lg transition-colors`}
