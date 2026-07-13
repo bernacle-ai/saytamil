@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Sidebar } from './Sidebar';
 import { Editor } from '../Editor/Editor';
 import { useChat } from '@/contexts/ChatContext';
+import { useUsage } from '@/contexts/UsageContext';
 
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -12,6 +13,7 @@ export function MainLayout() {
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const { currentChatId } = useChat();
+  const { usage } = useUsage();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('tamil_chat_theme') as 'dark' | 'light' | null;
@@ -52,6 +54,27 @@ export function MainLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Credit balance pill */}
+            {usage && (
+              <div
+                title={`${usage.remaining} checks remaining this month`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                  usage.remaining === 0
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                    : usage.remaining <= 5
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                    : theme === 'dark'
+                    ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
+                    : 'bg-teal-50 border-teal-200 text-teal-700'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  usage.remaining === 0 ? 'bg-red-400' : usage.remaining <= 5 ? 'bg-amber-400' : 'bg-teal-400'
+                }`} />
+                <span>{usage.remaining}/{usage.limit}</span>
+                <span className={theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}>credits</span>
+              </div>
+            )}
             <button
               onClick={toggleTheme}
               className={`p-2 ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-gray-100'} rounded-lg transition-colors`}
