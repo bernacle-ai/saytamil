@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useChat } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSession, signOut } from 'next-auth/react';
@@ -42,16 +43,16 @@ export function Sidebar({ isOpen, onToggle, theme }: SidebarProps) {
 
         {/* Logo */}
         <div className={`p-4 border-b ${borderColor}`}>
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-9 h-9 rounded-xl overflow-hidden shadow flex-shrink-0">
+          <Link href="/" className="flex items-center gap-3 mb-4 px-1 group" title="Go to Home">
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow flex-shrink-0 group-hover:ring-2 group-hover:ring-teal-500 transition-all">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/saytamil-logo.png" alt="SayTamil" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h2 className={`font-bold text-base ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>SayTamil</h2>
+              <h2 className={`font-bold text-base ${theme === 'dark' ? 'text-white group-hover:text-teal-400' : 'text-slate-800 group-hover:text-teal-600'} transition-colors`}>SayTamil</h2>
               <p className={`text-xs ${textFaint}`}>AI Writing Assistant</p>
             </div>
-          </div>
+          </Link>
 
           <button
             onClick={handleNewChat}
