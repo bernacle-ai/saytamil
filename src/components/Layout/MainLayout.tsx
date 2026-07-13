@@ -5,27 +5,21 @@ import Link from 'next/link';
 import { Sidebar } from './Sidebar';
 import { Editor } from '../Editor/Editor';
 import { useChat } from '@/contexts/ChatContext';
+import { useUsage } from '@/contexts/UsageContext';
 
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(16);
-  const [usage, setUsage] = useState<{ used: number; limit: number; remaining: number } | null>(null);
   const { currentChatId } = useChat();
+  const { usage } = useUsage();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('tamil_chat_theme') as 'dark' | 'light' | null;
     if (savedTheme) setTheme(savedTheme);
     const savedFont = localStorage.getItem('tamil_chat_font');
     if (savedFont) setFontSize(Number(savedFont));
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/usage')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setUsage(data); })
-      .catch(() => {});
   }, []);
 
   const toggleTheme = () => {

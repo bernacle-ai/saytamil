@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useUsage } from '@/contexts/UsageContext';
 import type { Suggestion, AnalysisResult } from '@/lib/gemini';
 import { SuggestionCard } from './SuggestionCard';
 import { TransliterationDropdown } from './TransliterationDropdown';
@@ -21,7 +22,6 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
   const [chatTitle, setChatTitle] = useState('Untitled Draft');
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [usage, setUsage] = useState<{ used: number; limit: number; remaining: number } | null>(null);
   // Undo history for accepted suggestions
   const [contentHistory, setContentHistory] = useState<string[]>([]);
 
@@ -34,6 +34,7 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { currentChatId, addMessage, currentChat, renameChat } = useChat();
   const { showToast } = useToast();
+  const { usage, incrementUsage, refreshUsage } = useUsage();
 
   // Reset editor content when switching chats
   useEffect(() => {
@@ -352,18 +353,14 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
     }
 
     // Check usage limit before calling API
-    try {
-      const usageRes = await fetch('/api/usage');
-      if (usageRes.ok) {
-        const usage = await usageRes.json();
-        if (usage.remaining <= 0) {
-          showToast(`Monthly limit reached (${usage.limit} checks/month on free plan). Resets next month.`, 'error');
-          return;
-        }
-      }
-    } catch {
-      // If usage check fails, proceed anyway
+    if (usage !== null && usage.remaining <= 0) {
+      showToast(`Monthly limit reached (${usage.limit} checks/month on free plan). Resets next month.`, 'error');
+      return;
     }
+    // Also do a server-side check in case state is stale
+    try {
+      await refreshUsage();
+    } catch { /* non-critical */ }
 
     setIsAnalyzing(true);
     setShowSuggestions(true);
@@ -382,14 +379,8 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
       const result: AnalysisResult = await res.json();
       setAnalysisResult(result);
 
-      // Increment usage and refresh counter
-      try {
-        const usageRes = await fetch('/api/usage', { method: 'POST' });
-        if (usageRes.ok) {
-          const updated = await usageRes.json();
-          setUsage(updated);
-        }
-      } catch { /* non-critical */ }
+      // Increment usage — updates shared context so header pill refreshes instantly
+      await incrementUsage();
 
       addMessage({
         text: `Analysis Complete!\n\nScore: ${result.score}/100\n\n${result.summary}\n\n${result.suggestions.length > 0 ? `Found ${result.suggestions.length} suggestions.` : 'No issues found!'}`,
