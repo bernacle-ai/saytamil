@@ -15,15 +15,6 @@ export const metadata: Metadata = {
   },
 };
 
-const breadcrumbSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.saytamil.com' },
-    { '@type': 'ListItem', position: 2, name: 'Sandhi Rules', item: 'https://www.saytamil.com/sandhi-rules' },
-  ],
-};
-
 const rules = [
   {
     name: 'Glide Insertion — யகர (Y-glide)',
@@ -74,7 +65,6 @@ const errorTable = [
 export default function SandhiRulesPage() {
   return (
     <div className="bg-white min-h-screen">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <NavBar />
       <main className="pt-24 pb-20 px-4">
         <div className="max-w-3xl mx-auto">
