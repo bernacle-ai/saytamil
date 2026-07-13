@@ -81,26 +81,27 @@ export async function initDB() {
 export const createUsersTable = initDB;
 
 // Free plan limits
-export const FREE_DAILY_LIMIT = 10;
+export const FREE_MONTHLY_LIMIT = 20;
 
-export async function getUserUsageToday(userId: number): Promise<number> {
+export async function getUserUsageThisMonth(userId: number): Promise<number> {
   const result = await pool.query(
-    `SELECT analysis_count FROM usage WHERE user_id = $1 AND date = CURRENT_DATE`,
+    `SELECT SUM(analysis_count) as total FROM usage 
+     WHERE user_id = $1 
+     AND date_trunc('month', date) = date_trunc('month', CURRENT_DATE)`,
     [userId]
   );
-  return result.rows[0]?.analysis_count || 0;
+  return parseInt(result.rows[0]?.total || '0', 10);
 }
 
 export async function incrementUserUsage(userId: number): Promise<number> {
-  const result = await pool.query(
+  await pool.query(
     `INSERT INTO usage (user_id, date, analysis_count)
      VALUES ($1, CURRENT_DATE, 1)
      ON CONFLICT (user_id, date)
-     DO UPDATE SET analysis_count = usage.analysis_count + 1
-     RETURNING analysis_count`,
+     DO UPDATE SET analysis_count = usage.analysis_count + 1`,
     [userId]
   );
-  return result.rows[0].analysis_count;
+  return getUserUsageThisMonth(userId);
 }
 
 export async function getUserByEmail(email: string) {
