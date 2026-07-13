@@ -3,11 +3,13 @@ import { Noto_Sans_Tamil, Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { defaultMetadata } from '@/lib/seo/metadata';
 import {
   softwareApplicationSchema,
   faqSchema,
   organizationSchema,
+  websiteSchema,
 } from '@/lib/seo/structuredData';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { MicrosoftClarity } from '@/components/analytics/MicrosoftClarity';
@@ -42,6 +44,10 @@ export default function RootLayout({
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+        <script
+          type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationSchema) }}
         />
         <script
@@ -56,6 +62,7 @@ export default function RootLayout({
       <body className="font-sans">
         <Providers>{children}</Providers>
         <Analytics />
+        <SpeedInsights />
         <GoogleAnalytics />
         <MicrosoftClarity />
       </body>

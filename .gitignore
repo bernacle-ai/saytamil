@@ -19,7 +19,7 @@ ANALYTICS_KIRO_SPEC.md
 # next.js
 /.next/
 /out/
-
+tasks/
 # production
 /build
 

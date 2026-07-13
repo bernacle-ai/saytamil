@@ -15,6 +15,15 @@ export const metadata: Metadata = {
   },
 };
 
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.saytamil.com' },
+    { '@type': 'ListItem', position: 2, name: 'Tanglish to Tamil', item: 'https://www.saytamil.com/tanglish-to-tamil' },
+  ],
+};
+
 const examples = [
   { tanglish: 'vanakkam', tamil: 'வணக்கம்', meaning: 'Hello / Greetings' },
   { tanglish: 'nandri', tamil: 'நன்றி', meaning: 'Thank you' },
@@ -37,6 +46,7 @@ const steps = [
 export default function TanglishToTamilPage() {
   return (
     <div className="bg-white min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <NavBar />
       <main className="pt-24 pb-20 px-4">
         <div className="max-w-3xl mx-auto">
