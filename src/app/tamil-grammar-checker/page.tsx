@@ -16,15 +16,6 @@ export const metadata: Metadata = {
   },
 };
 
-const breadcrumbSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.saytamil.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tamil Grammar Checker', item: 'https://www.saytamil.com/tamil-grammar-checker' },
-  ],
-};
-
 const keywords = [
   'Tamil Grammar Checker',
   'Tamil Writing Tool',
@@ -48,7 +39,6 @@ const features = [
 export default function TamilGrammarCheckerPage() {
   return (
     <div className="bg-white min-h-screen">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <NavBar />
       <main className="pt-24 pb-20">
 

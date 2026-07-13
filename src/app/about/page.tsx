@@ -15,15 +15,6 @@ export const metadata: Metadata = {
   },
 };
 
-const breadcrumbSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.saytamil.com' },
-    { '@type': 'ListItem', position: 2, name: 'About', item: 'https://www.saytamil.com/about' },
-  ],
-};
-
 const features = [
   { title: 'Grammar Checking', desc: 'Catches verb form errors, subject-verb agreement issues, and case ending mistakes in formal Tamil.' },
   { title: 'Sandhi Rules', desc: 'Automatically detects and corrects word boundary errors (புணர்ச்சி) — the most common mistake in written Tamil.' },
@@ -36,7 +27,6 @@ const features = [
 export default function AboutPage() {
   return (
     <div className="bg-white min-h-screen">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <NavBar />
       <main className="pt-24 pb-20 px-4">
         <div className="max-w-3xl mx-auto">

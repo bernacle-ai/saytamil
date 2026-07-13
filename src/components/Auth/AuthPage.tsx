@@ -196,13 +196,13 @@ export function AuthPage({ onAuthSuccess, initialMode = 'login' }: { onAuthSucce
             {dark ? <SunIcon /> : <MoonIcon />}
           </button>
 
-          <a href="/" className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
+          <button className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
             style={{ color: body }}>
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back to home
-          </a>
+          </button>
         </div>
       </nav>
 

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     url: 'https://www.saytamil.com/signup',
     type: 'website',
   },
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
 };
 
 export default function SignupPage() {
