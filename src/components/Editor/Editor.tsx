@@ -115,13 +115,7 @@ export function Editor({ theme = 'dark', onOpenSettings, globalFontSize }: { the
     if (currentChat) setChatTitle(currentChat.title);
   }, [currentChat]);
 
-  // Fetch usage on mount
-  useEffect(() => {
-    fetch('/api/usage')
-      .then(r => r.json())
-      .then(data => { if (data.used !== undefined) setUsage(data); })
-      .catch(() => {});
-  }, []);
+
 
   // Get exact cursor pixel position using a mirror div
   const getCursorPixelPosition = (textarea: HTMLTextAreaElement): { top: number; left: number } => {
